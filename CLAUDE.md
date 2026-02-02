@@ -1,0 +1,6 @@
+- When you do make summary documents, put them as markdown files with mermaid graphs in the ./docs directory
+- Do not need to create summary documents unless I ask
+- When adding new dependencies, libraries or technologies, do web searches to verify you are using the latest versions
+- Do not use emojis
+- Do not write api endpoints with try-catches that fail silently. Let errors bubble up
+- Try to limit functions to no more than 50 lines

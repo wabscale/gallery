@@ -12,8 +12,11 @@ api.interceptors.response.use(
   response => response,
   error => {
     if (error.response?.status === 401) {
-      const isAdminRoute = window.location.pathname.startsWith('/admin');
-      if (isAdminRoute) {
+      const path = window.location.pathname;
+      const isAdminRoute = path.startsWith('/admin');
+      const isLoginPage = path === '/admin/login';
+      const isAuthCheck = error.config?.url === '/auth/me';
+      if (isAdminRoute && !isLoginPage && !isAuthCheck) {
         window.location.href = '/admin/login';
       }
     }
@@ -53,6 +56,7 @@ export const imagesAPI = {
     });
   },
   delete: (id) => api.delete(`/admin/images/${id}`),
+  updateVisibility: (id, isHidden) => api.put(`/admin/images/${id}/visibility`, { is_hidden: isHidden }),
   updateOrder: (id, order) => api.put(`/admin/images/${id}/order`, { order })
 };
 

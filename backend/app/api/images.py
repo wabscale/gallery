@@ -132,7 +132,11 @@ def serve_full_image(gallery_id, image_id):
 @audit_log('delete', 'image')
 def delete_image(id):
     image = Image.query.get_or_404(id)
+    gallery = image.gallery
     gallery_id = image.gallery_id
+
+    if gallery.cover_image_id == image.id:
+        gallery.cover_image_id = None
 
     if os.path.exists(image.file_path):
         os.remove(image.file_path)
@@ -154,6 +158,25 @@ def delete_image(id):
     cache.clear()
 
     return jsonify({'message': 'Image deleted successfully'}), 200
+
+
+@bp.route('/api/admin/images/<int:id>/visibility', methods=['PUT'])
+@admin_required
+@audit_log('update_visibility', 'image')
+def update_image_visibility(id):
+    image = Image.query.get_or_404(id)
+    data = request.get_json()
+
+    is_hidden = data.get('is_hidden')
+    if is_hidden is None:
+        return jsonify({'error': 'is_hidden is required'}), 400
+
+    image.is_hidden = is_hidden
+    db.session.commit()
+
+    cache.clear()
+
+    return jsonify({'message': 'Image visibility updated'}), 200
 
 
 @bp.route('/api/admin/images/<int:id>/order', methods=['PUT'])

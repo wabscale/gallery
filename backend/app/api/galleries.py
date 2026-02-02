@@ -20,6 +20,8 @@ def list_public_galleries():
         'name': g.name,
         'slug': g.slug,
         'image_count': g.image_count,
+        'hover_animation': g.hover_animation,
+        'cover_image_id': g.cover_image_id,
         'created_at': g.created_at.isoformat()
     } for g in galleries]), 200
 
@@ -33,7 +35,7 @@ def get_gallery_by_slug(slug):
     if not gallery.is_public and not session.get(f'gallery_auth:{gallery.id}'):
         return jsonify({'error': 'Authentication required', 'requires_password': True}), 401
 
-    images = gallery.images.order_by(Image.order).all()
+    images = gallery.images.filter_by(is_hidden=False).order_by(Image.order).all()
 
     return jsonify({
         'id': gallery.id,
@@ -42,7 +44,7 @@ def get_gallery_by_slug(slug):
         'is_public': gallery.is_public,
         'allow_download': gallery.allow_download,
         'thumbnail_only': gallery.thumbnail_only,
-        'image_count': gallery.image_count,
+        'image_count': len(images),
         'images': [{
             'id': img.id,
             'filename': img.filename,
@@ -85,6 +87,8 @@ def list_all_galleries():
         'name': g.name,
         'slug': g.slug,
         'is_public': g.is_public,
+        'hover_animation': g.hover_animation,
+        'cover_image_id': g.cover_image_id,
         'image_count': g.image_count,
         'owner_id': g.owner_id,
         'created_at': g.created_at.isoformat(),
@@ -115,6 +119,7 @@ def create_gallery():
         watermark_enabled=data.get('watermark_enabled', False),
         watermark_opacity=data.get('watermark_opacity', 30),
         thumbnail_quality=data.get('thumbnail_quality', 85),
+        hover_animation=data.get('hover_animation', 'crossfade'),
         owner_id=current_user.id
     )
 
@@ -140,6 +145,7 @@ def create_gallery():
 @admin_required
 def get_gallery(id):
     gallery = Gallery.query.get_or_404(id)
+    images = gallery.images.order_by(Image.order).all()
 
     return jsonify({
         'id': gallery.id,
@@ -151,10 +157,21 @@ def get_gallery(id):
         'watermark_enabled': gallery.watermark_enabled,
         'watermark_opacity': gallery.watermark_opacity,
         'thumbnail_quality': gallery.thumbnail_quality,
+        'hover_animation': gallery.hover_animation,
+        'cover_image_id': gallery.cover_image_id,
         'image_count': gallery.image_count,
         'owner_id': gallery.owner_id,
         'created_at': gallery.created_at.isoformat(),
-        'updated_at': gallery.updated_at.isoformat()
+        'updated_at': gallery.updated_at.isoformat(),
+        'images': [{
+            'id': img.id,
+            'filename': img.filename,
+            'original_filename': img.original_filename,
+            'width': img.width,
+            'height': img.height,
+            'is_hidden': img.is_hidden,
+            'order': img.order
+        } for img in images]
     }), 200
 
 
@@ -180,6 +197,10 @@ def update_gallery(id):
         gallery.watermark_opacity = data['watermark_opacity']
     if 'thumbnail_quality' in data:
         gallery.thumbnail_quality = data['thumbnail_quality']
+    if 'hover_animation' in data:
+        gallery.hover_animation = data['hover_animation']
+    if 'cover_image_id' in data:
+        gallery.cover_image_id = data['cover_image_id']
 
     if 'password' in data:
         if data['password']:

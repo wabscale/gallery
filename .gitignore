@@ -60,3 +60,5 @@ coverage/
 
 # Docker
 docker-compose.override.yml.local
+
+commit.sh

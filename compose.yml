@@ -3,6 +3,9 @@ services:
     image: traefik:3.6.7
     container_name: gallery-traefik
     restart: unless-stopped
+    command:
+      - "traefik"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
     ports:
       - "80:80"
       - "443:443"
@@ -73,7 +76,7 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=(PathPrefix(`/api`) || PathPrefix(`/images`))"
+      - "traefik.http.routers.backend.rule=Host(`${DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/images`))"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls=true"
       - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
@@ -92,7 +95,7 @@ services:
       - backend
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN}`) && PathPrefix(`/`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls=true"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"

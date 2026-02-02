@@ -1,7 +1,15 @@
-import { Dialog, IconButton, Box } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { Dialog, IconButton, Box, CircularProgress } from '@mui/material';
 import { Close, ArrowBack, ArrowForward, Download } from '@mui/icons-material';
 
 const ImageModal = ({ open, onClose, image, galleryId, onNext, onPrevious, allowDownload }) => {
+  const [loading, setLoading] = useState(true);
+
+  const imageId = image?.id;
+  useEffect(() => {
+    setLoading(true);
+  }, [imageId]);
+
   if (!image) return null;
 
   const fullImageUrl = `/images/full/${galleryId}/${image.id}`;
@@ -63,10 +71,22 @@ const ImageModal = ({ open, onClose, image, galleryId, onNext, onPrevious, allow
           </IconButton>
         )}
 
+        {loading && (
+          <CircularProgress
+            sx={{ color: 'rgba(255, 255, 255, 0.7)', position: 'absolute' }}
+          />
+        )}
         <img
           src={fullImageUrl}
           alt={image.original_filename}
-          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+          onLoad={() => setLoading(false)}
+          style={{
+            maxWidth: '100%',
+            maxHeight: '100%',
+            objectFit: 'contain',
+            opacity: loading ? 0 : 1,
+            transition: 'opacity 0.3s ease',
+          }}
         />
       </Box>
     </Dialog>

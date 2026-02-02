@@ -32,6 +32,18 @@ class Config:
 
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*').split(',')
 
+    COMPRESS_MIMETYPES = [
+        'text/html',
+        'text/css',
+        'text/xml',
+        'text/plain',
+        'application/json',
+        'application/javascript',
+        'image/svg+xml',
+    ]
+    COMPRESS_ALGORITHM = ['br', 'gzip', 'deflate']
+    COMPRESS_MIN_SIZE = 256
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

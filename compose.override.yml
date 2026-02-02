@@ -11,13 +11,18 @@ services:
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.entrypoints=web"
 
+  mariadb:
+    volumes: []
+
+  redis:
+    volumes: []
+
   backend:
     environment:
       FLASK_ENV: development
       FLASK_DEBUG: "1"
     volumes:
       - ./backend:/app
-      - gallery-data:/app/data
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend-dev.rule=(PathPrefix(`/api`) || PathPrefix(`/images`))"

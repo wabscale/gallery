@@ -32,10 +32,10 @@ const GalleryManager = () => {
   const handleCreate = async () => {
     setError('');
     try {
-      await galleriesAPI.create(newGallery);
+      const response = await galleriesAPI.create(newGallery);
       setCreateDialogOpen(false);
       setNewGallery({ name: '', is_public: true, password: '' });
-      loadGalleries();
+      navigate(`/admin/galleries/${response.data.id}`);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create gallery');
     }

@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Box, Typography, Paper, LinearProgress, List, ListItem, ListItemText, IconButton } from '@mui/material';
 import { CloudUpload, CheckCircle, Error, Delete } from '@mui/icons-material';
 import { imagesAPI } from '../../services/api';
 
 const ImageUploader = ({ galleryId, onUploadComplete }) => {
   const [uploadQueue, setUploadQueue] = useState([]);
+  const activeUploadsRef = useRef(0);
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
@@ -29,10 +30,19 @@ const ImageUploader = ({ galleryId, onUploadComplete }) => {
     }));
 
     setUploadQueue(prev => [...prev, ...newUploads]);
+    activeUploadsRef.current += newUploads.length;
 
     newUploads.forEach(upload => {
       uploadFile(upload);
     });
+  };
+
+  const onFileFinished = () => {
+    activeUploadsRef.current -= 1;
+    if (activeUploadsRef.current <= 0 && onUploadComplete) {
+      activeUploadsRef.current = 0;
+      onUploadComplete();
+    }
   };
 
   const uploadFile = async (upload) => {
@@ -43,21 +53,21 @@ const ImageUploader = ({ galleryId, onUploadComplete }) => {
         galleryId,
         upload.file,
         (progressEvent) => {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          const progress = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
           updateUploadStatus(upload.id, { progress });
         }
       );
 
       updateUploadStatus(upload.id, { status: 'completed', progress: 100 });
-
-      if (onUploadComplete) {
-        setTimeout(() => onUploadComplete(), 500);
-      }
+      onFileFinished();
     } catch (err) {
       updateUploadStatus(upload.id, {
         status: 'error',
         error: err.response?.data?.error || 'Upload failed'
       });
+      onFileFinished();
     }
   };
 

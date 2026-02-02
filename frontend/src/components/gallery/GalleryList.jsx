@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Container, Grid, Card, CardContent, Typography, CardActionArea, Box } from '@mui/material';
-import { PhotoLibrary } from '@mui/icons-material';
+import { Container, Grid, Typography } from '@mui/material';
 import { galleriesAPI } from '../../services/api';
+import GalleryCard from './GalleryCard';
 
 const GalleryList = () => {
   const [galleries, setGalleries] = useState([]);
@@ -32,33 +32,8 @@ const GalleryList = () => {
 
       <Grid container spacing={3} sx={{ mt: 2 }}>
         {galleries.map(gallery => (
-          <Grid item xs={12} sm={6} md={4} key={gallery.id}>
-            <Card>
-              <CardActionArea href={`/gallery/${gallery.slug}`}>
-                <Box
-                  sx={{
-                    height: 200,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: 'grey.200'
-                  }}
-                >
-                  <PhotoLibrary sx={{ fontSize: 64, color: 'grey.400' }} />
-                </Box>
-                <CardContent>
-                  <Typography variant="h6" component="h2">
-                    {gallery.name}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {gallery.image_count} images
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Created {new Date(gallery.created_at).toLocaleDateString()}
-                  </Typography>
-                </CardContent>
-              </CardActionArea>
-            </Card>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={gallery.id}>
+            <GalleryCard gallery={gallery} />
           </Grid>
         ))}
       </Grid>

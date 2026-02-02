@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Container, Typography, Grid, Paper, Box, Button } from '@mui/material';
-import { Add, PhotoLibrary, Image as ImageIcon, Storage } from '@mui/icons-material';
+import { Container, Typography, Grid, Paper, Box, Button, IconButton } from '@mui/material';
+import { Add, PhotoLibrary, Image as ImageIcon, Storage, LightMode, DarkMode } from '@mui/icons-material';
 import { adminAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
+import { useThemeMode } from '../../App';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { mode, toggleMode } = useThemeMode();
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,6 +49,9 @@ const AdminDashboard = () => {
           <Button variant="contained" onClick={() => navigate('/admin/galleries')} sx={{ mr: 1 }}>
             Manage Galleries
           </Button>
+          <IconButton onClick={toggleMode} sx={{ mr: 1 }}>
+            {mode === 'dark' ? <LightMode /> : <DarkMode />}
+          </IconButton>
           <Button onClick={handleLogout}>Logout</Button>
         </Box>
       </Box>
@@ -55,7 +60,7 @@ const AdminDashboard = () => {
 
       {metrics && (
         <Grid container spacing={3} sx={{ mt: 2 }}>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <Paper sx={{ p: 3, display: 'flex', alignItems: 'center' }}>
               <PhotoLibrary sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
               <Box>
@@ -65,7 +70,7 @@ const AdminDashboard = () => {
             </Paper>
           </Grid>
 
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <Paper sx={{ p: 3, display: 'flex', alignItems: 'center' }}>
               <ImageIcon sx={{ fontSize: 40, mr: 2, color: 'secondary.main' }} />
               <Box>
@@ -75,7 +80,7 @@ const AdminDashboard = () => {
             </Paper>
           </Grid>
 
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <Paper sx={{ p: 3, display: 'flex', alignItems: 'center' }}>
               <Storage sx={{ fontSize: 40, mr: 2, color: 'success.main' }} />
               <Box>

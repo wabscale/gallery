@@ -1,6 +1,9 @@
+import { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
-import { ThemeProvider, createTheme, CssBaseline, Container, AppBar, Toolbar, Typography, Button } from '@mui/material';
+import { ThemeProvider, CssBaseline, AppBar, Toolbar, Typography, IconButton } from '@mui/material';
+import { LightMode, DarkMode } from '@mui/icons-material';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { darkTheme, lightTheme } from './theme';
 import GalleryList from './components/gallery/GalleryList';
 import GalleryGrid from './components/gallery/GalleryGrid';
 import Login from './components/admin/Login';
@@ -8,17 +11,49 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import GalleryManager from './components/admin/GalleryManager';
 import GalleryDetails from './components/admin/GalleryDetails';
 
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-  },
-});
+const ThemeContext = createContext(null);
+
+export const useThemeMode = () => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useThemeMode must be used within ThemeContext');
+  }
+  return context;
+};
+
+const ThemeModeProvider = ({ children }) => {
+  const [mode, setMode] = useState(() => {
+    return localStorage.getItem('themeMode') || 'dark';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('themeMode', mode);
+  }, [mode]);
+
+  const toggleMode = () => {
+    setMode(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const theme = mode === 'dark' ? darkTheme : lightTheme;
+
+  return (
+    <ThemeContext.Provider value={{ mode, toggleMode }}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        {children}
+      </ThemeProvider>
+    </ThemeContext.Provider>
+  );
+};
+
+const ThemeToggleButton = () => {
+  const { mode, toggleMode } = useThemeMode();
+  return (
+    <IconButton color="inherit" onClick={toggleMode} aria-label="Toggle theme">
+      {mode === 'dark' ? <LightMode /> : <DarkMode />}
+    </IconButton>
+  );
+};
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -34,10 +69,15 @@ const PublicLayout = ({ children }) => {
     <>
       <AppBar position="static">
         <Toolbar>
-          <Typography variant="h6" component="a" href="/" sx={{ flexGrow: 1, textDecoration: 'none', color: 'inherit' }}>
+          <Typography
+            variant="h6"
+            component="a"
+            href="/"
+            sx={{ flexGrow: 1, textDecoration: 'none', color: 'inherit' }}
+          >
             Photo Gallery
           </Typography>
-          <Button color="inherit" href="/admin">Admin</Button>
+          <ThemeToggleButton />
         </Toolbar>
       </AppBar>
       {children}
@@ -47,8 +87,7 @@ const PublicLayout = ({ children }) => {
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <ThemeModeProvider>
       <AuthProvider>
         <BrowserRouter>
           <Routes>
@@ -62,7 +101,7 @@ function App() {
           </Routes>
         </BrowserRouter>
       </AuthProvider>
-    </ThemeProvider>
+    </ThemeModeProvider>
   );
 }
 

@@ -1,0 +1,41 @@
+[project]
+name = "gallery-backend"
+version = "0.1.0"
+description = "Photo gallery backend API"
+requires-python = ">=3.14"
+dependencies = [
+    "flask==3.1.2",
+    "flask-sqlalchemy==3.1.1",
+    "flask-login==0.6.3",
+    "flask-bcrypt==1.0.1",
+    "flask-compress==1.23",
+    "flask-caching==2.3.1",
+    "flask-cors==5.0.0",
+    "pillow==12.1.0",
+    "redis==7.1.0",
+    "pymysql==1.1.2",
+    "gunicorn==24.1.1",
+    "gevent==25.9.1",
+    "stream-zip==0.0.83",
+    "python-dotenv==1.0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.0.2",
+    "pytest-cov==6.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --strict-markers"

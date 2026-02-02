@@ -20,7 +20,7 @@ services:
       - gallery-data:/app/data
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend-dev.rule=Host(`localhost`) && (PathPrefix(`/api`) || PathPrefix(`/images`))"
+      - "traefik.http.routers.backend-dev.rule=(PathPrefix(`/api`) || PathPrefix(`/images`))"
       - "traefik.http.routers.backend-dev.entrypoints=web"
       - "traefik.http.routers.backend-dev.service=backend-dev"
       - "traefik.http.services.backend-dev.loadbalancer.server.port=8000"
@@ -37,7 +37,7 @@ services:
       - /app/node_modules
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend-dev.rule=Host(`localhost`)"
+      - "traefik.http.routers.frontend-dev.rule=PathPrefix(`/`)"
       - "traefik.http.routers.frontend-dev.entrypoints=web"
       - "traefik.http.routers.frontend-dev.service=frontend-dev"
       - "traefik.http.services.frontend-dev.loadbalancer.server.port=5173"

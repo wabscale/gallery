@@ -117,7 +117,8 @@ def serve_full_image(gallery_id, image_id):
         watermarked_path = os.path.join(watermarked_dir, image.filename)
 
         if not os.path.exists(watermarked_path):
-            apply_watermark(file_path, watermarked_path, gallery.name, gallery.watermark_opacity)
+            watermark_text = gallery.watermark_text or gallery.name
+            apply_watermark(file_path, watermarked_path, watermark_text, gallery.watermark_opacity)
 
         file_path = watermarked_path
 

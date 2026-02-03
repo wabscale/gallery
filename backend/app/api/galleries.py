@@ -118,6 +118,7 @@ def create_gallery():
         thumbnail_only=data.get('thumbnail_only', False),
         watermark_enabled=data.get('watermark_enabled', False),
         watermark_opacity=data.get('watermark_opacity', 30),
+        watermark_text=data.get('watermark_text'),
         thumbnail_quality=data.get('thumbnail_quality', 85),
         hover_animation=data.get('hover_animation', 'crossfade'),
         owner_id=current_user.id
@@ -156,6 +157,7 @@ def get_gallery(id):
         'thumbnail_only': gallery.thumbnail_only,
         'watermark_enabled': gallery.watermark_enabled,
         'watermark_opacity': gallery.watermark_opacity,
+        'watermark_text': gallery.watermark_text,
         'thumbnail_quality': gallery.thumbnail_quality,
         'hover_animation': gallery.hover_animation,
         'cover_image_id': gallery.cover_image_id,
@@ -195,6 +197,8 @@ def update_gallery(id):
         gallery.watermark_enabled = data['watermark_enabled']
     if 'watermark_opacity' in data:
         gallery.watermark_opacity = data['watermark_opacity']
+    if 'watermark_text' in data:
+        gallery.watermark_text = data['watermark_text'] or None
     if 'thumbnail_quality' in data:
         gallery.thumbnail_quality = data['thumbnail_quality']
     if 'hover_animation' in data:

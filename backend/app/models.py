@@ -34,6 +34,7 @@ class Gallery(db.Model):
     thumbnail_only = db.Column(db.Boolean, default=False, nullable=False)
     watermark_enabled = db.Column(db.Boolean, default=False, nullable=False)
     watermark_opacity = db.Column(db.Integer, default=30, nullable=False)
+    watermark_text = db.Column(db.String(200), nullable=True)
     thumbnail_quality = db.Column(db.Integer, default=85, nullable=False)
     hover_animation = db.Column(db.String(20), default='crossfade', nullable=False)
     cover_image_id = db.Column(db.Integer, nullable=True)

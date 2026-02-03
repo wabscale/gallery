@@ -5,7 +5,7 @@ dev:
     docker compose up -d
 
 deploy:
-    docker compose -f compose.yml up -d
+    docker compose -f compose.yml up -d --force-recreate --build
 
 stop:
     docker compose down

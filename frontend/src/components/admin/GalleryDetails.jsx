@@ -244,6 +244,16 @@ const GallerySettingsForm = ({ gallery, onChange, onSave }) => {
 
       <TextField
         fullWidth
+        label="Watermark Text"
+        value={gallery.watermark_text || ''}
+        onChange={(e) => onChange('watermark_text', e.target.value)}
+        margin="normal"
+        placeholder={gallery.name}
+        helperText="Leave empty to use gallery name"
+      />
+
+      <TextField
+        fullWidth
         type="number"
         label="Watermark Opacity (%)"
         value={gallery.watermark_opacity}

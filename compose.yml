@@ -77,7 +77,7 @@ services:
     labels:
       - "traefik.enable=true"
       # Individual image serving (generous limit)
-      - "traefik.http.routers.backend-images.rule=Host(`${DOMAIN}`) && PathPrefix(`/images`)"
+      - "traefik.http.routers.backend-images.rule=(Host(`${DOMAIN}`) || Host(`${DOMAIN2}`)) && PathPrefix(`/images`)"
       - "traefik.http.routers.backend-images.entrypoints=websecure"
       - "traefik.http.routers.backend-images.tls=true"
       - "traefik.http.routers.backend-images.tls.certresolver=letsencrypt"
@@ -85,7 +85,7 @@ services:
       - "traefik.http.routers.backend-images.middlewares=images-ratelimit@docker"
       - "traefik.http.routers.backend-images.priority=200"
       # Gallery ZIP download request (strict limit)
-      - "traefik.http.routers.backend-downloads.rule=Host(`${DOMAIN}`) && PathPrefix(`/api/galleries`) && Path(`/{slug}/download`)"
+      - "traefik.http.routers.backend-downloads.rule=(Host(`${DOMAIN}`) || Host(`${DOMAIN2}`)) && PathPrefix(`/api/galleries`) && Path(`/{slug}/download`)"
       - "traefik.http.routers.backend-downloads.entrypoints=websecure"
       - "traefik.http.routers.backend-downloads.tls=true"
       - "traefik.http.routers.backend-downloads.tls.certresolver=letsencrypt"
@@ -93,7 +93,7 @@ services:
       - "traefik.http.routers.backend-downloads.middlewares=download-ratelimit@docker"
       - "traefik.http.routers.backend-downloads.priority=300"
       # ZIP file retrieval (strict limit)
-      - "traefik.http.routers.backend-download-file.rule=Host(`${DOMAIN}`) && PathPrefix(`/api/downloads`)"
+      - "traefik.http.routers.backend-download-file.rule=(Host(`${DOMAIN}`) || Host(`${DOMAIN2}`)) && PathPrefix(`/api/downloads`)"
       - "traefik.http.routers.backend-download-file.entrypoints=websecure"
       - "traefik.http.routers.backend-download-file.tls=true"
       - "traefik.http.routers.backend-download-file.tls.certresolver=letsencrypt"
@@ -101,7 +101,7 @@ services:
       - "traefik.http.routers.backend-download-file.middlewares=download-ratelimit@docker"
       - "traefik.http.routers.backend-download-file.priority=300"
       # General API (moderate limit)
-      - "traefik.http.routers.backend.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.rule=(Host(`${DOMAIN}`) || Host(`${DOMAIN2}`)) && PathPrefix(`/api`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls=true"
       - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
@@ -137,7 +137,7 @@ services:
       - backend
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN}`) && PathPrefix(`/`)"
+      - "traefik.http.routers.frontend.rule=(Host(`${DOMAIN}`) || Host(`${DOMAIN2}`)) && PathPrefix(`/`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls=true"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"

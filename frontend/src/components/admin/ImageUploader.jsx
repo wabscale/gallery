@@ -1,7 +1,9 @@
 import { useState, useCallback, useRef } from 'react';
-import { Box, Typography, Paper, LinearProgress, List, ListItem, ListItemText, IconButton } from '@mui/material';
-import { CloudUpload, CheckCircle, Error, Delete } from '@mui/icons-material';
+import { Box, Typography, Paper, LinearProgress, List, ListItem, ListItemText, IconButton, Tooltip } from '@mui/material';
+import { CloudUpload, CheckCircle, Error, Delete, Replay } from '@mui/icons-material';
 import { imagesAPI } from '../../services/api';
+
+const MAX_RETRIES = 3;
 
 const ImageUploader = ({ galleryId, onUploadComplete }) => {
   const [uploadQueue, setUploadQueue] = useState([]);
@@ -45,8 +47,8 @@ const ImageUploader = ({ galleryId, onUploadComplete }) => {
     }
   };
 
-  const uploadFile = async (upload) => {
-    updateUploadStatus(upload.id, { status: 'uploading', progress: 0 });
+  const uploadFile = async (upload, attempt = 1) => {
+    updateUploadStatus(upload.id, { status: 'uploading', progress: 0, error: null });
 
     try {
       await imagesAPI.upload(
@@ -63,12 +65,23 @@ const ImageUploader = ({ galleryId, onUploadComplete }) => {
       updateUploadStatus(upload.id, { status: 'completed', progress: 100 });
       onFileFinished();
     } catch (err) {
-      updateUploadStatus(upload.id, {
-        status: 'error',
-        error: err.response?.data?.error || 'Upload failed'
-      });
-      onFileFinished();
+      if (attempt < MAX_RETRIES && (!err.response || err.response.status >= 500)) {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        updateUploadStatus(upload.id, { status: 'retrying', progress: 0, error: `Retry ${attempt}/${MAX_RETRIES}...` });
+        setTimeout(() => uploadFile(upload, attempt + 1), delay);
+      } else {
+        updateUploadStatus(upload.id, {
+          status: 'error',
+          error: err.response?.data?.error || 'Upload failed'
+        });
+        onFileFinished();
+      }
     }
+  };
+
+  const retryUpload = (upload) => {
+    activeUploadsRef.current += 1;
+    uploadFile(upload, 1);
   };
 
   const updateUploadStatus = (id, updates) => {
@@ -84,11 +97,13 @@ const ImageUploader = ({ galleryId, onUploadComplete }) => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle color="success" />;
+        return <CheckCircle color="success" fontSize="small" />;
       case 'error':
-        return <Error color="error" />;
+        return <Error color="error" fontSize="small" />;
+      case 'retrying':
+        return <Replay color="warning" fontSize="small" />;
       default:
-        return <CloudUpload />;
+        return <CloudUpload fontSize="small" />;
     }
   };
 
@@ -138,11 +153,20 @@ const ImageUploader = ({ galleryId, onUploadComplete }) => {
           <List sx={{ maxHeight: 300, overflow: 'auto' }} dense>
             {uploadQueue.map(upload => (
               <ListItem key={upload.id} sx={{ py: 0.5 }} secondaryAction={
-                (upload.status === 'completed' || upload.status === 'error') && (
-                  <IconButton edge="end" size="small" onClick={() => removeUpload(upload.id)}>
-                    <Delete fontSize="small" />
-                  </IconButton>
-                )
+                <Box display="flex" gap={0.5}>
+                  {upload.status === 'error' && (
+                    <Tooltip title="Retry">
+                      <IconButton edge="end" size="small" onClick={() => retryUpload(upload)}>
+                        <Replay fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  {(upload.status === 'completed' || upload.status === 'error') && (
+                    <IconButton edge="end" size="small" onClick={() => removeUpload(upload.id)}>
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  )}
+                </Box>
               }>
                 {getStatusIcon(upload.status)}
                 <ListItemText
@@ -151,6 +175,7 @@ const ImageUploader = ({ galleryId, onUploadComplete }) => {
                   secondary={
                     <>
                       {upload.status === 'error' && upload.error}
+                      {upload.status === 'retrying' && upload.error}
                       {upload.status === 'uploading' && (
                         <LinearProgress variant="determinate" value={upload.progress} sx={{ mt: 0.5 }} />
                       )}

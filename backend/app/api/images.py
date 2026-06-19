@@ -30,12 +30,57 @@ def upload_image(gallery_id):
         return jsonify({'error': 'Invalid file type'}), 400
 
     original_filename = secure_filename(file.filename)
-    filename = generate_unique_filename(original_filename)
 
     gallery_dir = os.path.join(current_app.config['GALLERY_DATA_PATH'], str(gallery.id))
     originals_dir = os.path.join(gallery_dir, 'originals')
+    thumbnails_dir = os.path.join(gallery_dir, 'thumbnails')
     os.makedirs(originals_dir, exist_ok=True)
 
+    existing = Image.query.filter_by(gallery_id=gallery.id, original_filename=original_filename).first()
+
+    if existing:
+        if os.path.exists(existing.file_path):
+            os.remove(existing.file_path)
+        for size in ['small', 'medium', 'large']:
+            name, ext = os.path.splitext(existing.filename)
+            thumb_path = os.path.join(thumbnails_dir, f"{name}_{size}{ext}")
+            if os.path.exists(thumb_path):
+                os.remove(thumb_path)
+        watermarked_path = os.path.join(gallery_dir, 'watermarked', existing.filename)
+        if os.path.exists(watermarked_path):
+            os.remove(watermarked_path)
+
+        filename = existing.filename
+        file_path = os.path.join(originals_dir, filename)
+        file.save(file_path)
+
+        with PILImage.open(file_path) as img:
+            width, height = img.size
+
+        existing.file_size = os.path.getsize(file_path)
+        existing.width = width
+        existing.height = height
+        existing.file_path = file_path
+        existing.file_modified_at = datetime.utcfromtimestamp(os.path.getmtime(file_path))
+        existing.uploaded_at = datetime.utcnow()
+        existing.uploaded_by = current_user.id
+
+        db.session.commit()
+
+        for size in ['small', 'medium', 'large']:
+            generate_thumbnail(file_path, thumbnails_dir, size, gallery.thumbnail_quality)
+
+        return jsonify({
+            'id': existing.id,
+            'filename': existing.filename,
+            'original_filename': existing.original_filename,
+            'width': existing.width,
+            'height': existing.height,
+            'file_size': existing.file_size,
+            'message': 'Image replaced successfully'
+        }), 200
+
+    filename = generate_unique_filename(original_filename)
     file_path = os.path.join(originals_dir, filename)
     file.save(file_path)
 
@@ -63,7 +108,6 @@ def upload_image(gallery_id):
     db.session.add(image)
     db.session.commit()
 
-    thumbnails_dir = os.path.join(gallery_dir, 'thumbnails')
     for size in ['small', 'medium', 'large']:
         generate_thumbnail(file_path, thumbnails_dir, size, gallery.thumbnail_quality)
 

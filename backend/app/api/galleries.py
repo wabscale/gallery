@@ -254,7 +254,16 @@ def update_gallery(id):
 
     if 'name' in data:
         gallery.name = data['name']
-        gallery.slug = slugify(data['name'])
+        if 'slug' not in data:
+            gallery.slug = slugify(data['name'])
+    if 'slug' in data:
+        new_slug = slugify(data['slug'])
+        if not new_slug:
+            return jsonify({'error': 'Slug cannot be empty'}), 400
+        existing = Gallery.query.filter(Gallery.slug == new_slug, Gallery.id != gallery.id).first()
+        if existing:
+            return jsonify({'error': 'A gallery with this slug already exists'}), 409
+        gallery.slug = new_slug
     if 'is_public' in data:
         gallery.is_public = data['is_public']
     if 'allow_download' in data:

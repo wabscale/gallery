@@ -4,10 +4,11 @@ import {
   Container, Typography, Paper, Grid, TextField, FormControlLabel,
   Switch, Button, Box, Alert, FormControl, InputLabel,
   Select, MenuItem, IconButton, Chip, Tooltip, Table, TableBody,
-  TableCell, TableContainer, TableHead, TableRow, TablePagination
+  TableCell, TableContainer, TableHead, TableRow, TablePagination,
+  Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import {
-  Delete, Visibility, VisibilityOff, PhotoCamera
+  Delete, Visibility, VisibilityOff, PhotoCamera, Download
 } from '@mui/icons-material';
 import { galleriesAPI, imagesAPI } from '../../services/api';
 import ImageUploader from './ImageUploader';
@@ -141,6 +142,12 @@ const GalleryDetails = () => {
           </Paper>
         </Grid>
 
+        {gallery.collect_emails && (
+          <Grid size={{ xs: 12 }}>
+            <AccessLogs galleryId={gallery.id} />
+          </Grid>
+        )}
+
         <Grid size={{ xs: 12 }}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
@@ -162,17 +169,6 @@ const GalleryDetails = () => {
             )}
           </Paper>
         </Grid>
-
-        {gallery.collect_emails && (
-          <Grid size={{ xs: 12 }}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Visitor Access Logs
-              </Typography>
-              <AccessLogs galleryId={gallery.id} />
-            </Paper>
-          </Grid>
-        )}
       </Grid>
     </Container>
   );
@@ -193,9 +189,9 @@ const GallerySettingsForm = ({ gallery, onChange, onSave }) => {
         fullWidth
         label="Slug"
         value={gallery.slug}
+        onChange={(e) => onChange('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
         margin="normal"
-        disabled
-        helperText="Auto-generated from name"
+        helperText="URL path for this gallery"
       />
 
       <Grid container spacing={1} sx={{ mt: 1 }}>
@@ -540,6 +536,7 @@ const AccessLogs = ({ galleryId }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
 
   const loadLogs = useCallback(async () => {
     setLoading(true);
@@ -558,9 +555,7 @@ const AccessLogs = ({ galleryId }) => {
     loadLogs();
   }, [loadLogs]);
 
-  const formatDate = (iso) => {
-    return new Date(iso).toLocaleString();
-  };
+  const formatDate = (iso) => new Date(iso).toLocaleString();
 
   const formatAction = (action) => {
     switch (action) {
@@ -571,52 +566,116 @@ const AccessLogs = ({ galleryId }) => {
     }
   };
 
-  if (loading && logs.length === 0) {
-    return <Typography color="text.secondary">Loading...</Typography>;
-  }
+  const exportCsv = async () => {
+    let allLogs = [];
+    let currentPage = 1;
+    let hasMore = true;
+    while (hasMore) {
+      const response = await galleriesAPI.getAccessLogs(galleryId, currentPage, 200);
+      allLogs = allLogs.concat(response.data.logs);
+      hasMore = allLogs.length < response.data.total;
+      currentPage++;
+    }
+    const header = 'Email,Action,Image,IP Address,Date';
+    const rows = allLogs.map(log =>
+      [
+        `"${log.email}"`,
+        `"${formatAction(log.action)}"`,
+        `"${log.image_filename || ''}"`,
+        `"${log.ip_address || ''}"`,
+        `"${log.created_at}"`
+      ].join(',')
+    );
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `access-logs-${galleryId}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
-  if (total === 0) {
-    return <Typography color="text.secondary">No access logs yet.</Typography>;
-  }
+  const uniqueEmails = new Set(logs.map(l => l.email)).size;
 
   return (
     <>
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Email</TableCell>
-              <TableCell>Action</TableCell>
-              <TableCell>Image</TableCell>
-              <TableCell>IP Address</TableCell>
-              <TableCell>Date</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {logs.map((log) => (
-              <TableRow key={log.id}>
-                <TableCell>{log.email}</TableCell>
-                <TableCell>{formatAction(log.action)}</TableCell>
-                <TableCell>{log.image_filename || '-'}</TableCell>
-                <TableCell>{log.ip_address || '-'}</TableCell>
-                <TableCell>{formatDate(log.created_at)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <TablePagination
-        component="div"
-        count={total}
-        page={page}
-        onPageChange={(_, newPage) => setPage(newPage)}
-        rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={(e) => {
-          setRowsPerPage(parseInt(e.target.value, 10));
-          setPage(0);
-        }}
-        rowsPerPageOptions={[10, 25, 50]}
-      />
+      <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Visitor Access Logs
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {total} events from {uniqueEmails} visitor{uniqueEmails !== 1 ? 's' : ''}
+          </Typography>
+        </Box>
+        <Box display="flex" gap={1}>
+          <Button size="small" startIcon={<Download />} onClick={exportCsv} disabled={total === 0}>
+            CSV
+          </Button>
+          <Button size="small" variant="outlined" onClick={() => setOpen(true)} disabled={total === 0}>
+            View
+          </Button>
+        </Box>
+      </Paper>
+
+      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">Visitor Access Logs</Typography>
+            <Button size="small" startIcon={<Download />} onClick={exportCsv}>
+              Export CSV
+            </Button>
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          {loading && logs.length === 0 ? (
+            <Typography color="text.secondary">Loading...</Typography>
+          ) : (
+            <>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Email</TableCell>
+                      <TableCell>Action</TableCell>
+                      <TableCell>Image</TableCell>
+                      <TableCell>IP</TableCell>
+                      <TableCell>Date</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {logs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell sx={{ whiteSpace: 'nowrap' }}>{log.email}</TableCell>
+                        <TableCell>{formatAction(log.action)}</TableCell>
+                        <TableCell>{log.image_filename || '-'}</TableCell>
+                        <TableCell>{log.ip_address || '-'}</TableCell>
+                        <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(log.created_at)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              <TablePagination
+                component="div"
+                count={total}
+                page={page}
+                onPageChange={(_, newPage) => setPage(newPage)}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={(e) => {
+                  setRowsPerPage(parseInt(e.target.value, 10));
+                  setPage(0);
+                }}
+                rowsPerPageOptions={[10, 25, 50]}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

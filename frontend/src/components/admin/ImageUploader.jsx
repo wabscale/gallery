@@ -125,32 +125,41 @@ const ImageUploader = ({ galleryId, onUploadComplete }) => {
 
       {uploadQueue.length > 0 && (
         <Paper sx={{ mt: 3, p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            Upload Queue ({uploadQueue.filter(u => u.status === 'completed').length} / {uploadQueue.length})
-          </Typography>
-          <List>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+            <Typography variant="h6">
+              Upload Queue ({uploadQueue.filter(u => u.status === 'completed').length} / {uploadQueue.length})
+            </Typography>
+            {uploadQueue.every(u => u.status === 'completed' || u.status === 'error') && (
+              <IconButton size="small" onClick={() => setUploadQueue([])}>
+                <Delete fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
+          <List sx={{ maxHeight: 300, overflow: 'auto' }} dense>
             {uploadQueue.map(upload => (
-              <ListItem key={upload.id} secondaryAction={
-                upload.status === 'completed' && (
-                  <IconButton edge="end" onClick={() => removeUpload(upload.id)}>
-                    <Delete />
+              <ListItem key={upload.id} sx={{ py: 0.5 }} secondaryAction={
+                (upload.status === 'completed' || upload.status === 'error') && (
+                  <IconButton edge="end" size="small" onClick={() => removeUpload(upload.id)}>
+                    <Delete fontSize="small" />
                   </IconButton>
                 )
               }>
                 {getStatusIcon(upload.status)}
                 <ListItemText
                   primary={upload.file.name}
+                  primaryTypographyProps={{ variant: 'body2', noWrap: true }}
                   secondary={
                     <>
                       {upload.status === 'error' && upload.error}
                       {upload.status === 'uploading' && (
-                        <LinearProgress variant="determinate" value={upload.progress} sx={{ mt: 1 }} />
+                        <LinearProgress variant="determinate" value={upload.progress} sx={{ mt: 0.5 }} />
                       )}
-                      {upload.status === 'completed' && 'Upload complete'}
+                      {upload.status === 'completed' && 'Done'}
                       {upload.status === 'queued' && 'Queued'}
                     </>
                   }
-                  sx={{ ml: 2 }}
+                  secondaryTypographyProps={{ variant: 'caption' }}
+                  sx={{ ml: 1.5 }}
                 />
               </ListItem>
             ))}

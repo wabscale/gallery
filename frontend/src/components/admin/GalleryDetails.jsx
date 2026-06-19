@@ -2,14 +2,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import {
   Container, Typography, Paper, Grid, TextField, FormControlLabel,
-  Switch, Button, Box, Alert, Divider, FormControl, InputLabel,
-  Select, MenuItem, IconButton, Chip, Tooltip
+  Switch, Button, Box, Alert, FormControl, InputLabel,
+  Select, MenuItem, IconButton, Chip, Tooltip, Table, TableBody,
+  TableCell, TableContainer, TableHead, TableRow, TablePagination
 } from '@mui/material';
 import {
   Delete, Visibility, VisibilityOff, PhotoCamera
 } from '@mui/icons-material';
 import { galleriesAPI, imagesAPI } from '../../services/api';
 import ImageUploader from './ImageUploader';
+import ImageModal from '../gallery/ImageModal';
 
 const GalleryDetails = () => {
   const { id } = useParams();
@@ -160,6 +162,17 @@ const GalleryDetails = () => {
             )}
           </Paper>
         </Grid>
+
+        {gallery.collect_emails && (
+          <Grid size={{ xs: 12 }}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Visitor Access Logs
+              </Typography>
+              <AccessLogs galleryId={gallery.id} />
+            </Paper>
+          </Grid>
+        )}
       </Grid>
     </Container>
   );
@@ -185,41 +198,119 @@ const GallerySettingsForm = ({ gallery, onChange, onSave }) => {
         helperText="Auto-generated from name"
       />
 
-      <FormControlLabel
-        control={
-          <Switch
-            checked={gallery.is_public}
-            onChange={(e) => onChange('is_public', e.target.checked)}
+      <Grid container spacing={1} sx={{ mt: 1 }}>
+        <Grid size={{ xs: 6 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={gallery.is_public}
+                onChange={(e) => onChange('is_public', e.target.checked)}
+                size="small"
+              />
+            }
+            label="Public"
           />
-        }
-        label="Public Gallery"
-      />
-
-      <FormControlLabel
-        control={
-          <Switch
-            checked={gallery.allow_download}
-            onChange={(e) => onChange('allow_download', e.target.checked)}
+        </Grid>
+        <Grid size={{ xs: 6 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={gallery.allow_download}
+                onChange={(e) => onChange('allow_download', e.target.checked)}
+                size="small"
+              />
+            }
+            label="Downloads"
           />
-        }
-        label="Allow Downloads"
-      />
-
-      <FormControlLabel
-        control={
-          <Switch
-            checked={gallery.thumbnail_only}
-            onChange={(e) => onChange('thumbnail_only', e.target.checked)}
+        </Grid>
+        <Grid size={{ xs: 6 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={gallery.thumbnail_only}
+                onChange={(e) => onChange('thumbnail_only', e.target.checked)}
+                size="small"
+              />
+            }
+            label="Thumbnail Only"
           />
-        }
-        label="Thumbnail Only Mode"
-      />
+        </Grid>
+        <Grid size={{ xs: 6 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={gallery.collect_emails}
+                onChange={(e) => onChange('collect_emails', e.target.checked)}
+                size="small"
+              />
+            }
+            label="Collect Emails"
+          />
+        </Grid>
+        <Grid size={{ xs: 6 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={gallery.watermark_enabled}
+                onChange={(e) => onChange('watermark_enabled', e.target.checked)}
+                size="small"
+              />
+            }
+            label="Watermark"
+          />
+        </Grid>
+      </Grid>
 
-      <FormControl fullWidth margin="normal">
-        <InputLabel>Hover Animation Style</InputLabel>
+      {!gallery.is_public && (
+        <TextField
+          fullWidth
+          type="password"
+          label="Gallery Password"
+          value={gallery.password || ''}
+          onChange={(e) => onChange('password', e.target.value)}
+          margin="normal"
+          size="small"
+          placeholder={gallery.password_hash ? 'Leave empty to keep current' : 'Set a password'}
+          helperText={gallery.password_hash ? 'New password to change, empty to keep' : 'Set a password'}
+        />
+      )}
+
+      <FormControl fullWidth margin="normal" size="small">
+        <InputLabel>Image Sort Order</InputLabel>
+        <Select
+          value={gallery.image_sort || 'name_asc'}
+          label="Image Sort Order"
+          onChange={(e) => onChange('image_sort', e.target.value)}
+        >
+          <MenuItem value="name_asc">Name (A to Z)</MenuItem>
+          <MenuItem value="name_desc">Name (Z to A)</MenuItem>
+          <MenuItem value="modified_asc">Modified Time (oldest first)</MenuItem>
+          <MenuItem value="modified_desc">Modified Time (newest first)</MenuItem>
+          <MenuItem value="upload_asc">Upload Time (oldest first)</MenuItem>
+          <MenuItem value="upload_desc">Upload Time (newest first)</MenuItem>
+        </Select>
+      </FormControl>
+
+      <FormControl fullWidth margin="normal" size="small">
+        <InputLabel>Thumbnail Aspect Ratio</InputLabel>
+        <Select
+          value={gallery.thumbnail_aspect_ratio || '4x5'}
+          label="Thumbnail Aspect Ratio"
+          onChange={(e) => onChange('thumbnail_aspect_ratio', e.target.value)}
+        >
+          <MenuItem value="1x1">1:1 (Square)</MenuItem>
+          <MenuItem value="4x5">4:5 (Portrait)</MenuItem>
+          <MenuItem value="5x4">5:4 (Landscape)</MenuItem>
+          <MenuItem value="9x16">9:16 (Tall)</MenuItem>
+          <MenuItem value="16x9">16:9 (Wide)</MenuItem>
+        </Select>
+      </FormControl>
+
+      <FormControl fullWidth margin="normal" size="small">
+        <InputLabel>Hover Animation</InputLabel>
         <Select
           value={gallery.hover_animation || 'crossfade'}
-          label="Hover Animation Style"
+          label="Hover Animation"
           onChange={(e) => onChange('hover_animation', e.target.value)}
         >
           <MenuItem value="crossfade">Crossfade</MenuItem>
@@ -228,39 +319,31 @@ const GallerySettingsForm = ({ gallery, onChange, onSave }) => {
         </Select>
       </FormControl>
 
-      <Divider sx={{ my: 2 }} />
-
-      <Typography variant="h6" gutterBottom>Watermark Settings</Typography>
-
-      <FormControlLabel
-        control={
-          <Switch
-            checked={gallery.watermark_enabled}
-            onChange={(e) => onChange('watermark_enabled', e.target.checked)}
+      {gallery.watermark_enabled && (
+        <>
+          <TextField
+            fullWidth
+            label="Watermark Text"
+            value={gallery.watermark_text || ''}
+            onChange={(e) => onChange('watermark_text', e.target.value)}
+            margin="normal"
+            size="small"
+            placeholder={gallery.name}
+            helperText="Empty uses gallery name"
           />
-        }
-        label="Enable Watermark"
-      />
 
-      <TextField
-        fullWidth
-        label="Watermark Text"
-        value={gallery.watermark_text || ''}
-        onChange={(e) => onChange('watermark_text', e.target.value)}
-        margin="normal"
-        placeholder={gallery.name}
-        helperText="Leave empty to use gallery name"
-      />
-
-      <TextField
-        fullWidth
-        type="number"
-        label="Watermark Opacity (%)"
-        value={gallery.watermark_opacity}
-        onChange={(e) => onChange('watermark_opacity', parseInt(e.target.value))}
-        margin="normal"
-        inputProps={{ min: 0, max: 100 }}
-      />
+          <TextField
+            fullWidth
+            type="number"
+            label="Watermark Opacity (%)"
+            value={gallery.watermark_opacity}
+            onChange={(e) => onChange('watermark_opacity', parseInt(e.target.value))}
+            margin="normal"
+            size="small"
+            inputProps={{ min: 0, max: 100 }}
+          />
+        </>
+      )}
 
       <TextField
         fullWidth
@@ -269,6 +352,7 @@ const GallerySettingsForm = ({ gallery, onChange, onSave }) => {
         value={gallery.thumbnail_quality}
         onChange={(e) => onChange('thumbnail_quality', parseInt(e.target.value))}
         margin="normal"
+        size="small"
         inputProps={{ min: 1, max: 100 }}
       />
 
@@ -283,27 +367,64 @@ const ImageManager = ({
   images, galleryId, coverImageId,
   onSetCover, onToggleVisibility, onDelete
 }) => {
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const handleImageClick = (image, index) => {
+    setSelectedImage(image);
+    setSelectedIndex(index);
+  };
+
+  const handleNext = () => {
+    if (selectedIndex < images.length - 1) {
+      const newIndex = selectedIndex + 1;
+      setSelectedIndex(newIndex);
+      setSelectedImage(images[newIndex]);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (selectedIndex > 0) {
+      const newIndex = selectedIndex - 1;
+      setSelectedIndex(newIndex);
+      setSelectedImage(images[newIndex]);
+    }
+  };
+
   return (
-    <Grid container spacing={2}>
-      {images.map(img => (
-        <Grid size={{ xs: 6, sm: 4, md: 3 }} key={img.id}>
-          <ImageCard
-            image={img}
-            galleryId={galleryId}
-            isCover={coverImageId === img.id}
-            onSetCover={onSetCover}
-            onToggleVisibility={onToggleVisibility}
-            onDelete={onDelete}
-          />
-        </Grid>
-      ))}
-    </Grid>
+    <>
+      <Grid container spacing={2}>
+        {images.map((img, index) => (
+          <Grid size={{ xs: 6, sm: 4, md: 3 }} key={img.id}>
+            <ImageCard
+              image={img}
+              galleryId={galleryId}
+              isCover={coverImageId === img.id}
+              onSetCover={onSetCover}
+              onToggleVisibility={onToggleVisibility}
+              onDelete={onDelete}
+              onClick={() => handleImageClick(img, index)}
+            />
+          </Grid>
+        ))}
+      </Grid>
+
+      <ImageModal
+        open={selectedImage !== null}
+        onClose={() => setSelectedImage(null)}
+        image={selectedImage}
+        galleryId={galleryId}
+        onNext={selectedIndex < images.length - 1 ? handleNext : null}
+        onPrevious={selectedIndex > 0 ? handlePrevious : null}
+        allowDownload={true}
+      />
+    </>
   );
 };
 
 const ImageCard = ({
   image, galleryId, isCover,
-  onSetCover, onToggleVisibility, onDelete
+  onSetCover, onToggleVisibility, onDelete, onClick
 }) => {
   const thumbUrl = `/images/thumbnails/${galleryId}/${image.id}?size=small`;
 
@@ -321,11 +442,13 @@ const ImageCard = ({
         component="img"
         src={thumbUrl}
         alt={image.original_filename}
+        onClick={onClick}
         sx={{
           width: '100%',
           aspectRatio: '1',
           objectFit: 'cover',
           display: 'block',
+          cursor: 'pointer',
         }}
       />
 
@@ -408,6 +531,93 @@ const ImageCard = ({
         {image.original_filename}
       </Typography>
     </Box>
+  );
+};
+
+const AccessLogs = ({ galleryId }) => {
+  const [logs, setLogs] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [loading, setLoading] = useState(true);
+
+  const loadLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await galleriesAPI.getAccessLogs(galleryId, page + 1, rowsPerPage);
+      setLogs(response.data.logs);
+      setTotal(response.data.total);
+    } catch {
+      setLogs([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [galleryId, page, rowsPerPage]);
+
+  useEffect(() => {
+    loadLogs();
+  }, [loadLogs]);
+
+  const formatDate = (iso) => {
+    return new Date(iso).toLocaleString();
+  };
+
+  const formatAction = (action) => {
+    switch (action) {
+      case 'access': return 'Accessed Gallery';
+      case 'view_image': return 'Viewed Image';
+      case 'download_gallery': return 'Downloaded Gallery';
+      default: return action;
+    }
+  };
+
+  if (loading && logs.length === 0) {
+    return <Typography color="text.secondary">Loading...</Typography>;
+  }
+
+  if (total === 0) {
+    return <Typography color="text.secondary">No access logs yet.</Typography>;
+  }
+
+  return (
+    <>
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Email</TableCell>
+              <TableCell>Action</TableCell>
+              <TableCell>Image</TableCell>
+              <TableCell>IP Address</TableCell>
+              <TableCell>Date</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {logs.map((log) => (
+              <TableRow key={log.id}>
+                <TableCell>{log.email}</TableCell>
+                <TableCell>{formatAction(log.action)}</TableCell>
+                <TableCell>{log.image_filename || '-'}</TableCell>
+                <TableCell>{log.ip_address || '-'}</TableCell>
+                <TableCell>{formatDate(log.created_at)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <TablePagination
+        component="div"
+        count={total}
+        page={page}
+        onPageChange={(_, newPage) => setPage(newPage)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={(e) => {
+          setRowsPerPage(parseInt(e.target.value, 10));
+          setPage(0);
+        }}
+        rowsPerPageOptions={[10, 25, 50]}
+      />
+    </>
   );
 };
 

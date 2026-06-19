@@ -1,0 +1,37 @@
+frontend/src/components/admin/GalleryDetails.jsx
+  s_c3211f46a3a016::t_5a7fcbb0fb18eb 539,558,569-597,599,603-678
+  s_c3211f46a3a016::t_5c942359b5cb36 145-150
+  s_c3211f46a3a016::t_648491388b4b65 7-8,11
+  s_c3211f46a3a016::t_52a10aa9356b61 192,194
+backend/app/api/galleries.py
+  s_c3211f46a3a016::t_10f6887af74684 257-266
+frontend/src/components/admin/ImageUploader.jsx
+  s_c3211f46a3a016::t_5f2a320725a6a8 50-51,68-78,82-84
+  s_c3211f46a3a016::t_26773602434c95 156-169,178
+  s_c3211f46a3a016::t_68735d5683f8ac 2-3,6
+  s_c3211f46a3a016::t_bfdf3ca8aa2c89 100,102-104,106
+compose.yml
+  s_c3211f46a3a016::t_116d099fd3598e 88
+  s_c3211f46a3a016::t_99ca64718d0858 80
+  s_c3211f46a3a016::t_49a51a79ec127e 96
+  s_c3211f46a3a016::t_f23bdadb31b4a6 140
+  s_c3211f46a3a016::t_9a979a10aead8d 104
+backend/app/api/images.py
+  s_c3211f46a3a016::t_51b439ff931d07 36,39-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "28d0fc9fea65bbe3bbc05fb7886f16b4b365d78d",
+  "prompts": {},
+  "sessions": {
+    "s_c3211f46a3a016": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "16548077-aecd-463e-b5f6-b25c6b749740",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "John McCann Cunniff Jr <johncunniff1248@gmail.com>"
+    }
+  }
+}

@@ -1,5 +1,4 @@
 import os
-from concurrent.futures import ThreadPoolExecutor
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 
 THUMBNAIL_SIZES = {
@@ -7,8 +6,6 @@ THUMBNAIL_SIZES = {
     'medium': (400, 400),
     'large': (800, 800)
 }
-
-_executor = ThreadPoolExecutor(max_workers=4)
 
 
 def generate_thumbnail(image_path, output_dir, size='medium', quality=85):
@@ -31,11 +28,8 @@ def generate_thumbnail(image_path, output_dir, size='medium', quality=85):
 
 
 def generate_all_thumbnails(image_path, output_dir, quality=85):
-    futures = []
     for size in THUMBNAIL_SIZES:
-        futures.append(_executor.submit(generate_thumbnail, image_path, output_dir, size, quality))
-    for f in futures:
-        f.result()
+        generate_thumbnail(image_path, output_dir, size, quality)
 
 
 def apply_watermark(image_path, output_path, text='', opacity=30):

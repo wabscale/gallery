@@ -244,32 +244,26 @@ def delete_all_images(gallery_id):
     return jsonify({'message': f'Deleted {len(images)} images'}), 200
 
 
-@bp.route('/api/admin/galleries/<int:gallery_id>/regenerate-thumbnails', methods=['POST'])
+@bp.route('/api/admin/galleries/<int:gallery_id>/regenerate-thumbnail/<int:image_id>', methods=['POST'])
 @admin_required
-def regenerate_thumbnails(gallery_id):
+def regenerate_thumbnail(gallery_id, image_id):
     gallery = Gallery.query.get_or_404(gallery_id)
-    data = request.get_json() or {}
-    image_ids = data.get('image_ids')
-
-    if not image_ids:
-        return jsonify({'error': 'image_ids required'}), 400
+    image = Image.query.filter_by(id=image_id, gallery_id=gallery_id).first_or_404()
 
     gallery_dir = os.path.join(current_app.config['GALLERY_DATA_PATH'], str(gallery_id))
     thumbnails_dir = os.path.join(gallery_dir, 'thumbnails')
 
-    images = Image.query.filter(Image.id.in_(image_ids), Image.gallery_id == gallery_id).all()
-    processed = 0
-    for image in images:
-        for size in ['small', 'medium', 'large']:
-            name, ext = os.path.splitext(image.filename)
-            thumb_path = os.path.join(thumbnails_dir, f"{name}_{size}{ext}")
-            if os.path.exists(thumb_path):
-                os.remove(thumb_path)
-        if os.path.exists(image.file_path):
-            generate_all_thumbnails(image.file_path, thumbnails_dir, gallery.thumbnail_quality)
-            processed += 1
+    for size in ['small', 'medium', 'large']:
+        name, ext = os.path.splitext(image.filename)
+        thumb_path = os.path.join(thumbnails_dir, f"{name}_{size}{ext}")
+        if os.path.exists(thumb_path):
+            os.remove(thumb_path)
 
-    return jsonify({'processed': processed}), 200
+    if not os.path.exists(image.file_path):
+        return jsonify({'error': 'Original file missing'}), 404
+
+    generate_all_thumbnails(image.file_path, thumbnails_dir, gallery.thumbnail_quality)
+    return jsonify({'message': 'ok'}), 200
 
 
 @bp.route('/api/admin/images/<int:id>/visibility', methods=['PUT'])

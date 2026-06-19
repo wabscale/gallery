@@ -194,8 +194,6 @@ const GalleryDetails = () => {
   );
 };
 
-const BATCH_SIZE = 5;
-
 const RegenerateThumbnails = ({ galleryId, images }) => {
   const [open, setOpen] = useState(false);
   const [running, setRunning] = useState(false);
@@ -209,15 +207,13 @@ const RegenerateThumbnails = ({ galleryId, images }) => {
     let done = 0;
     let failed = 0;
 
-    for (let i = 0; i < total; i += BATCH_SIZE) {
-      const batch = images.slice(i, i + BATCH_SIZE).map(img => img.id);
+    for (const img of images) {
       try {
-        await imagesAPI.regenerateThumbnails(galleryId, batch);
-        done += batch.length;
+        await imagesAPI.regenerateThumbnail(galleryId, img.id);
       } catch {
-        failed += batch.length;
-        done += batch.length;
+        failed += 1;
       }
+      done += 1;
       setProgress({ done, total, failed });
     }
 
@@ -241,7 +237,7 @@ const RegenerateThumbnails = ({ galleryId, images }) => {
         <DialogContent>
           {!running && progress.done === 0 && (
             <Typography>
-              This will regenerate thumbnails for all {images.length} images in batches of {BATCH_SIZE}. Existing thumbnails will be replaced.
+              This will regenerate thumbnails for all {images.length} images one at a time. Existing thumbnails will be replaced.
             </Typography>
           )}
           {(running || progress.done > 0) && (

@@ -8,7 +8,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import {
-  Delete, Visibility, VisibilityOff, PhotoCamera, Download
+  Delete, DeleteForever, Visibility, VisibilityOff, PhotoCamera, Download
 } from '@mui/icons-material';
 import { galleriesAPI, imagesAPI } from '../../services/api';
 import ImageUploader from './ImageUploader';
@@ -104,6 +104,17 @@ const GalleryDetails = () => {
     }
   };
 
+  const handleDeleteAllImages = async () => {
+    try {
+      await imagesAPI.deleteAll(id);
+      setGallery(prev => ({ ...prev, images: [], image_count: 0, cover_image_id: null }));
+      setSuccess('All images deleted');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError('Failed to delete images');
+    }
+  };
+
   if (loading) return <Typography>Loading...</Typography>;
   if (!gallery) return <Typography>Gallery not found</Typography>;
 
@@ -150,9 +161,14 @@ const GalleryDetails = () => {
 
         <Grid size={{ xs: 12 }}>
           <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Images ({images.length})
-            </Typography>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6">
+                Images ({images.length})
+              </Typography>
+              {images.length > 0 && (
+                <DeleteAllButton onConfirm={handleDeleteAllImages} count={images.length} />
+              )}
+            </Box>
             {images.length === 0 ? (
               <Typography color="text.secondary">
                 No images uploaded yet.
@@ -171,6 +187,38 @@ const GalleryDetails = () => {
         </Grid>
       </Grid>
     </Container>
+  );
+};
+
+const DeleteAllButton = ({ onConfirm, count }) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button
+        size="small"
+        color="error"
+        variant="outlined"
+        startIcon={<DeleteForever />}
+        onClick={() => setOpen(true)}
+      >
+        Delete All
+      </Button>
+      <Dialog open={open} onClose={() => setOpen(false)}>
+        <DialogTitle>Delete All Images</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to permanently delete all {count} images from this gallery? This cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={() => { setOpen(false); onConfirm(); }}>
+            Delete All
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 

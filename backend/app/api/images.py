@@ -8,7 +8,7 @@ from app import cache
 from app.models import db, Gallery, Image, GalleryAccessLog
 from app.utils.decorators import admin_required, audit_log
 from app.utils.helpers import generate_unique_filename, allowed_file
-from app.services.image_processor import generate_thumbnail, apply_watermark
+from app.services.image_processor import generate_thumbnail, generate_all_thumbnails, apply_watermark
 
 bp = Blueprint('images', __name__)
 
@@ -67,8 +67,7 @@ def upload_image(gallery_id):
 
         db.session.commit()
 
-        for size in ['small', 'medium', 'large']:
-            generate_thumbnail(file_path, thumbnails_dir, size, gallery.thumbnail_quality)
+        generate_all_thumbnails(file_path, thumbnails_dir, gallery.thumbnail_quality)
 
         return jsonify({
             'id': existing.id,
@@ -219,6 +218,30 @@ def delete_image(id):
     cache.clear()
 
     return jsonify({'message': 'Image deleted successfully'}), 200
+
+
+@bp.route('/api/admin/galleries/<int:gallery_id>/images', methods=['DELETE'])
+@admin_required
+@audit_log('delete_all', 'image')
+def delete_all_images(gallery_id):
+    gallery = Gallery.query.get_or_404(gallery_id)
+    images = Image.query.filter_by(gallery_id=gallery_id).all()
+
+    gallery_dir = os.path.join(current_app.config['GALLERY_DATA_PATH'], str(gallery_id))
+    for subdir in ['originals', 'thumbnails', 'watermarked']:
+        dir_path = os.path.join(gallery_dir, subdir)
+        if os.path.exists(dir_path):
+            for f in os.listdir(dir_path):
+                os.remove(os.path.join(dir_path, f))
+
+    gallery.cover_image_id = None
+    for image in images:
+        db.session.delete(image)
+
+    db.session.commit()
+    cache.clear()
+
+    return jsonify({'message': f'Deleted {len(images)} images'}), 200
 
 
 @bp.route('/api/admin/images/<int:id>/visibility', methods=['PUT'])

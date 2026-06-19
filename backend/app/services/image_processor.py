@@ -1,7 +1,6 @@
 import os
+from concurrent.futures import ThreadPoolExecutor
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
-from app import cache
-
 
 THUMBNAIL_SIZES = {
     'small': (200, 200),
@@ -9,28 +8,34 @@ THUMBNAIL_SIZES = {
     'large': (800, 800)
 }
 
+_executor = ThreadPoolExecutor(max_workers=4)
+
 
 def generate_thumbnail(image_path, output_dir, size='medium', quality=85):
-    cache_key = f'thumbnail:{image_path}:{size}:{quality}'
-    cached_path = cache.get(cache_key)
-    if cached_path and os.path.exists(cached_path):
-        return cached_path
+    filename = os.path.basename(image_path)
+    name, ext = os.path.splitext(filename)
+    output_filename = f"{name}_{size}{ext}"
+    output_path = os.path.join(output_dir, output_filename)
+
+    if os.path.exists(output_path):
+        return output_path
 
     os.makedirs(output_dir, exist_ok=True)
 
     with Image.open(image_path) as img:
         img = img.convert('RGB')
         img.thumbnail(THUMBNAIL_SIZES[size], Image.Resampling.LANCZOS)
-
-        filename = os.path.basename(image_path)
-        name, ext = os.path.splitext(filename)
-        output_filename = f"{name}_{size}{ext}"
-        output_path = os.path.join(output_dir, output_filename)
-
         img.save(output_path, 'JPEG', quality=quality, optimize=True)
 
-    cache.set(cache_key, output_path, timeout=3600)
     return output_path
+
+
+def generate_all_thumbnails(image_path, output_dir, quality=85):
+    futures = []
+    for size in THUMBNAIL_SIZES:
+        futures.append(_executor.submit(generate_thumbnail, image_path, output_dir, size, quality))
+    for f in futures:
+        f.result()
 
 
 def apply_watermark(image_path, output_path, text='', opacity=30):

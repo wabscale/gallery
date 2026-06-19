@@ -49,6 +49,9 @@ const AdminDashboard = () => {
           <Button variant="contained" onClick={() => navigate('/admin/galleries')} sx={{ mr: 1 }}>
             Manage Galleries
           </Button>
+          <Button variant="outlined" onClick={() => navigate('/admin/settings')} sx={{ mr: 1 }}>
+            Site Settings
+          </Button>
           <IconButton onClick={toggleMode} sx={{ mr: 1 }}>
             {mode === 'dark' ? <LightMode /> : <DarkMode />}
           </IconButton>

@@ -2,6 +2,15 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardActionArea, CardContent, Typography, Box } from '@mui/material';
 import { PhotoLibrary } from '@mui/icons-material';
 import { galleriesAPI } from '../../services/api';
+import { useSiteSettings } from '../../hooks/useSiteSettings';
+
+const ASPECT_RATIOS = {
+  '1x1': '1 / 1',
+  '4x5': '4 / 5',
+  '5x4': '5 / 4',
+  '9x16': '9 / 16',
+  '16x9': '16 / 9',
+};
 
 const ANIMATION_CONFIG = {
   crossfade: { interval: 2000 },
@@ -14,6 +23,7 @@ const getImageUrl = (galleryId, imageId) => {
 };
 
 const GalleryCard = ({ gallery }) => {
+  const { settings } = useSiteSettings();
   const [images, setImages] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hovered, setHovered] = useState(false);
@@ -22,6 +32,8 @@ const GalleryCard = ({ gallery }) => {
   const fetchedRef = useRef(false);
 
   const animationType = gallery.hover_animation || 'crossfade';
+  const aspectRatio = settings.gallery_card_aspect_ratio || '4x5';
+  const cssAspectRatio = ASPECT_RATIOS[aspectRatio] || '4 / 5';
   const coverUrl = gallery.cover_image_id
     ? getImageUrl(gallery.id, gallery.cover_image_id)
     : null;
@@ -72,7 +84,7 @@ const GalleryCard = ({ gallery }) => {
   return (
     <Card onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
       <CardActionArea href={`/gallery/${gallery.slug}`}>
-        <Box sx={{ height: 200, position: 'relative', overflow: 'hidden', bgcolor: 'grey.900' }}>
+        <Box sx={{ aspectRatio: cssAspectRatio, position: 'relative', overflow: 'hidden', bgcolor: 'grey.900' }}>
           {showAnimations ? (
             <AnimatedImageStack
               images={images}

@@ -1,9 +1,27 @@
 import { useState, useEffect } from 'react';
 import { Container, Grid, Typography } from '@mui/material';
 import { galleriesAPI } from '../../services/api';
+import { useSiteSettings } from '../../hooks/useSiteSettings';
 import GalleryCard from './GalleryCard';
 
+const getCardGridSize = (aspectRatio) => {
+  switch (aspectRatio) {
+    case '1x1':
+      return { xs: 12, sm: 6, md: 4 };
+    case '9x16':
+      return { xs: 6, sm: 4, md: 3 };
+    case '16x9':
+      return { xs: 12, sm: 6, md: 6 };
+    case '5x4':
+      return { xs: 12, sm: 6, md: 4 };
+    case '4x5':
+    default:
+      return { xs: 6, sm: 4, md: 3 };
+  }
+};
+
 const GalleryList = () => {
+  const { settings } = useSiteSettings();
   const [galleries, setGalleries] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +50,7 @@ const GalleryList = () => {
 
       <Grid container spacing={3} sx={{ mt: 2 }}>
         {galleries.map(gallery => (
-          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={gallery.id}>
+          <Grid size={getCardGridSize(settings.gallery_card_aspect_ratio)} key={gallery.id}>
             <GalleryCard gallery={gallery} />
           </Grid>
         ))}

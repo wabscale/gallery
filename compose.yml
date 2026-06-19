@@ -76,11 +76,53 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`${DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/images`))"
+      # Individual image serving (generous limit)
+      - "traefik.http.routers.backend-images.rule=Host(`${DOMAIN}`) && PathPrefix(`/images`)"
+      - "traefik.http.routers.backend-images.entrypoints=websecure"
+      - "traefik.http.routers.backend-images.tls=true"
+      - "traefik.http.routers.backend-images.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-images.service=backend"
+      - "traefik.http.routers.backend-images.middlewares=images-ratelimit@docker"
+      - "traefik.http.routers.backend-images.priority=200"
+      # Gallery ZIP download request (strict limit)
+      - "traefik.http.routers.backend-downloads.rule=Host(`${DOMAIN}`) && PathPrefix(`/api/galleries`) && Path(`/{slug}/download`)"
+      - "traefik.http.routers.backend-downloads.entrypoints=websecure"
+      - "traefik.http.routers.backend-downloads.tls=true"
+      - "traefik.http.routers.backend-downloads.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-downloads.service=backend"
+      - "traefik.http.routers.backend-downloads.middlewares=download-ratelimit@docker"
+      - "traefik.http.routers.backend-downloads.priority=300"
+      # ZIP file retrieval (strict limit)
+      - "traefik.http.routers.backend-download-file.rule=Host(`${DOMAIN}`) && PathPrefix(`/api/downloads`)"
+      - "traefik.http.routers.backend-download-file.entrypoints=websecure"
+      - "traefik.http.routers.backend-download-file.tls=true"
+      - "traefik.http.routers.backend-download-file.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-download-file.service=backend"
+      - "traefik.http.routers.backend-download-file.middlewares=download-ratelimit@docker"
+      - "traefik.http.routers.backend-download-file.priority=300"
+      # General API (moderate limit)
+      - "traefik.http.routers.backend.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls=true"
       - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
       - "traefik.http.routers.backend.service=backend"
+      - "traefik.http.routers.backend.middlewares=api-ratelimit@docker"
+      # Rate limit: images - 500 req/min, burst 100 (browsing galleries)
+      - "traefik.http.middlewares.images-ratelimit.ratelimit.average=500"
+      - "traefik.http.middlewares.images-ratelimit.ratelimit.burst=100"
+      - "traefik.http.middlewares.images-ratelimit.ratelimit.period=1m"
+      - "traefik.http.middlewares.images-ratelimit.ratelimit.sourcecriterion.ipstrategy.depth=1"
+      # Rate limit: general API - 100 req/min, burst 50
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=50"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.period=1m"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.sourcecriterion.ipstrategy.depth=1"
+      # Rate limit: ZIP downloads - 3 req/min, burst 2 (expensive operation)
+      - "traefik.http.middlewares.download-ratelimit.ratelimit.average=3"
+      - "traefik.http.middlewares.download-ratelimit.ratelimit.burst=2"
+      - "traefik.http.middlewares.download-ratelimit.ratelimit.period=1m"
+      - "traefik.http.middlewares.download-ratelimit.ratelimit.sourcecriterion.ipstrategy.depth=1"
+      # Service
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
 
   frontend:

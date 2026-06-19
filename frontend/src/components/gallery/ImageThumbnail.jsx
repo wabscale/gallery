@@ -2,11 +2,20 @@ import { useRef } from 'react';
 import { Card, CardMedia, Skeleton } from '@mui/material';
 import { useLazyLoad } from '../../hooks/useLazyLoad';
 
-const ImageThumbnail = ({ image, galleryId, onClick }) => {
+const ASPECT_RATIOS = {
+  '1x1': '1 / 1',
+  '4x5': '4 / 5',
+  '5x4': '5 / 4',
+  '9x16': '9 / 16',
+  '16x9': '16 / 9',
+};
+
+const ImageThumbnail = ({ image, galleryId, onClick, aspectRatio = '4x5' }) => {
   const ref = useRef();
   const isVisible = useLazyLoad(ref);
 
   const thumbnailUrl = `/images/thumbnails/${galleryId}/${image.id}?size=medium`;
+  const cssAspectRatio = ASPECT_RATIOS[aspectRatio] || '4 / 5';
 
   return (
     <Card
@@ -24,14 +33,13 @@ const ImageThumbnail = ({ image, galleryId, onClick }) => {
       {isVisible ? (
         <CardMedia
           component="img"
-          height="300"
           image={thumbnailUrl}
           alt={image.original_filename}
           loading="lazy"
-          sx={{ objectFit: 'cover' }}
+          sx={{ aspectRatio: cssAspectRatio, objectFit: 'cover' }}
         />
       ) : (
-        <Skeleton variant="rectangular" height={300} />
+        <Skeleton variant="rectangular" sx={{ aspectRatio: cssAspectRatio }} />
       )}
     </Card>
   );

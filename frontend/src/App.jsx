@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { ThemeProvider, CssBaseline, AppBar, Toolbar, Typography, IconButton } from '@mui/material';
 import { LightMode, DarkMode } from '@mui/icons-material';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { SiteSettingsProvider, useSiteSettings } from './hooks/useSiteSettings';
 import { darkTheme, lightTheme } from './theme';
 import GalleryList from './components/gallery/GalleryList';
 import GalleryGrid from './components/gallery/GalleryGrid';
@@ -10,6 +11,7 @@ import Login from './components/admin/Login';
 import AdminDashboard from './components/admin/AdminDashboard';
 import GalleryManager from './components/admin/GalleryManager';
 import GalleryDetails from './components/admin/GalleryDetails';
+import SiteSettings from './components/admin/SiteSettings';
 
 const ThemeContext = createContext(null);
 
@@ -65,6 +67,7 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const PublicLayout = ({ children }) => {
+  const { settings } = useSiteSettings();
   return (
     <>
       <AppBar position="static">
@@ -75,7 +78,7 @@ const PublicLayout = ({ children }) => {
             href="/"
             sx={{ flexGrow: 1, textDecoration: 'none', color: 'inherit' }}
           >
-            Photo Gallery
+            {settings.site_heading}
           </Typography>
           <ThemeToggleButton />
         </Toolbar>
@@ -88,6 +91,7 @@ const PublicLayout = ({ children }) => {
 function App() {
   return (
     <ThemeModeProvider>
+      <SiteSettingsProvider>
       <AuthProvider>
         <BrowserRouter>
           <Routes>
@@ -98,9 +102,11 @@ function App() {
             <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/galleries" element={<ProtectedRoute><GalleryManager /></ProtectedRoute>} />
             <Route path="/admin/galleries/:id" element={<ProtectedRoute><GalleryDetails /></ProtectedRoute>} />
+            <Route path="/admin/settings" element={<ProtectedRoute><SiteSettings /></ProtectedRoute>} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>
+      </SiteSettingsProvider>
     </ThemeModeProvider>
   );
 }

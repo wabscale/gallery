@@ -43,10 +43,11 @@ def create_app(config_name=None):
 
         db.create_all()
 
-        from app.api import galleries, images, admin, downloads
+        from app.api import galleries, images, admin, downloads, site_settings
         app.register_blueprint(galleries.bp)
         app.register_blueprint(images.bp)
         app.register_blueprint(admin.bp)
         app.register_blueprint(downloads.bp)
+        app.register_blueprint(site_settings.bp)
 
     return app

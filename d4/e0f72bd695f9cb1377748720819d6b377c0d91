@@ -1,0 +1,19 @@
+compose.yml
+  s_c3211f46a3a016::t_79312fe0a172e0 110-112,115-117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "d4e0f72bd695f9cb1377748720819d6b377c0d91",
+  "prompts": {},
+  "sessions": {
+    "s_c3211f46a3a016": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "16548077-aecd-463e-b5f6-b25c6b749740",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "John McCann Cunniff Jr <johncunniff1248@gmail.com>"
+    }
+  }
+}

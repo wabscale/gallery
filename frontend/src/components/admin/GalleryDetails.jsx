@@ -5,7 +5,7 @@ import {
   Switch, Button, Box, Alert, FormControl, InputLabel,
   Select, MenuItem, IconButton, Chip, Tooltip, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, TablePagination,
-  Dialog, DialogTitle, DialogContent, DialogActions
+  Dialog, DialogTitle, DialogContent, DialogActions, LinearProgress
 } from '@mui/material';
 import {
   Delete, DeleteForever, Visibility, VisibilityOff, PhotoCamera, Download, Refresh
@@ -115,19 +115,6 @@ const GalleryDetails = () => {
     }
   };
 
-  const [regenerating, setRegenerating] = useState(false);
-  const handleRegenerateThumbnails = async () => {
-    setRegenerating(true);
-    try {
-      const res = await imagesAPI.regenerateThumbnails(id);
-      setSuccess(res.data.message);
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError('Failed to regenerate thumbnails');
-    } finally {
-      setRegenerating(false);
-    }
-  };
 
   if (loading) return <Typography>Loading...</Typography>;
   if (!gallery) return <Typography>Gallery not found</Typography>;
@@ -181,15 +168,7 @@ const GalleryDetails = () => {
               </Typography>
               {images.length > 0 && (
                 <Box display="flex" gap={1}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<Refresh />}
-                    onClick={handleRegenerateThumbnails}
-                    disabled={regenerating}
-                  >
-                    {regenerating ? 'Regenerating...' : 'Regenerate Thumbnails'}
-                  </Button>
+                  <RegenerateThumbnails galleryId={gallery.id} images={images} />
                   <DeleteAllButton onConfirm={handleDeleteAllImages} count={images.length} />
                 </Box>
               )}
@@ -212,6 +191,97 @@ const GalleryDetails = () => {
         </Grid>
       </Grid>
     </Container>
+  );
+};
+
+const BATCH_SIZE = 5;
+
+const RegenerateThumbnails = ({ galleryId, images }) => {
+  const [open, setOpen] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState({ done: 0, total: 0, failed: 0 });
+
+  const start = async () => {
+    const total = images.length;
+    setRunning(true);
+    setProgress({ done: 0, total, failed: 0 });
+
+    let done = 0;
+    let failed = 0;
+
+    for (let i = 0; i < total; i += BATCH_SIZE) {
+      const batch = images.slice(i, i + BATCH_SIZE).map(img => img.id);
+      try {
+        await imagesAPI.regenerateThumbnails(galleryId, batch);
+        done += batch.length;
+      } catch {
+        failed += batch.length;
+        done += batch.length;
+      }
+      setProgress({ done, total, failed });
+    }
+
+    setRunning(false);
+  };
+
+  const percent = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+
+  return (
+    <>
+      <Button
+        size="small"
+        variant="outlined"
+        startIcon={<Refresh />}
+        onClick={() => setOpen(true)}
+      >
+        Regenerate Thumbnails
+      </Button>
+      <Dialog open={open} onClose={() => !running && setOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Regenerate Thumbnails</DialogTitle>
+        <DialogContent>
+          {!running && progress.done === 0 && (
+            <Typography>
+              This will regenerate thumbnails for all {images.length} images in batches of {BATCH_SIZE}. Existing thumbnails will be replaced.
+            </Typography>
+          )}
+          {(running || progress.done > 0) && (
+            <Box sx={{ mt: 1 }}>
+              <Box display="flex" justifyContent="space-between" mb={1}>
+                <Typography variant="body2">
+                  {progress.done} / {progress.total} images processed
+                </Typography>
+                <Typography variant="body2">{percent}%</Typography>
+              </Box>
+              <LinearProgress variant="determinate" value={percent} />
+              {progress.failed > 0 && (
+                <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                  {progress.failed} failed
+                </Typography>
+              )}
+              {!running && progress.done === progress.total && (
+                <Typography variant="body2" color="success.main" sx={{ mt: 1 }}>
+                  Complete
+                </Typography>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {!running && progress.done === progress.total && progress.total > 0 ? (
+            <Button onClick={() => { setOpen(false); setProgress({ done: 0, total: 0, failed: 0 }); }}>
+              Close
+            </Button>
+          ) : (
+            <>
+              <Button onClick={() => setOpen(false)} disabled={running}>Cancel</Button>
+              <Button variant="contained" onClick={start} disabled={running}>
+                {running ? 'Processing...' : 'Start'}
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 

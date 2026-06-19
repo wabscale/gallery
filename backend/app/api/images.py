@@ -248,20 +248,28 @@ def delete_all_images(gallery_id):
 @admin_required
 def regenerate_thumbnails(gallery_id):
     gallery = Gallery.query.get_or_404(gallery_id)
-    images = Image.query.filter_by(gallery_id=gallery_id).all()
+    data = request.get_json() or {}
+    image_ids = data.get('image_ids')
+
+    if not image_ids:
+        return jsonify({'error': 'image_ids required'}), 400
 
     gallery_dir = os.path.join(current_app.config['GALLERY_DATA_PATH'], str(gallery_id))
     thumbnails_dir = os.path.join(gallery_dir, 'thumbnails')
 
-    if os.path.exists(thumbnails_dir):
-        for f in os.listdir(thumbnails_dir):
-            os.remove(os.path.join(thumbnails_dir, f))
-
+    images = Image.query.filter(Image.id.in_(image_ids), Image.gallery_id == gallery_id).all()
+    processed = 0
     for image in images:
+        for size in ['small', 'medium', 'large']:
+            name, ext = os.path.splitext(image.filename)
+            thumb_path = os.path.join(thumbnails_dir, f"{name}_{size}{ext}")
+            if os.path.exists(thumb_path):
+                os.remove(thumb_path)
         if os.path.exists(image.file_path):
             generate_all_thumbnails(image.file_path, thumbnails_dir, gallery.thumbnail_quality)
+            processed += 1
 
-    return jsonify({'message': f'Regenerated thumbnails for {len(images)} images'}), 200
+    return jsonify({'processed': processed}), 200
 
 
 @bp.route('/api/admin/images/<int:id>/visibility', methods=['PUT'])

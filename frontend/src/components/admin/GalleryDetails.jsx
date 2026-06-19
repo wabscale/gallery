@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import {
   Container, Typography, Paper, Grid, TextField, FormControlLabel,
@@ -194,30 +194,56 @@ const GalleryDetails = () => {
   );
 };
 
+const CONCURRENT_REGEN = 3;
+
+const formatEta = (seconds) => {
+  if (seconds < 60) return `${Math.ceil(seconds)}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.ceil(seconds % 60);
+  return `${mins}m ${secs}s`;
+};
+
 const RegenerateThumbnails = ({ galleryId, images }) => {
   const [open, setOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, failed: 0 });
+  const [eta, setEta] = useState(null);
+  const startTimeRef = useRef(null);
 
   const start = async () => {
     const total = images.length;
     setRunning(true);
     setProgress({ done: 0, total, failed: 0 });
+    setEta(null);
+    startTimeRef.current = Date.now();
 
     let done = 0;
     let failed = 0;
+    let i = 0;
 
-    for (const img of images) {
-      try {
-        await imagesAPI.regenerateThumbnail(galleryId, img.id);
-      } catch {
-        failed += 1;
+    const processOne = async () => {
+      while (true) {
+        const idx = i++;
+        if (idx >= total) return;
+        try {
+          await imagesAPI.regenerateThumbnail(galleryId, images[idx].id);
+        } catch {
+          failed += 1;
+        }
+        done += 1;
+        const elapsed = (Date.now() - startTimeRef.current) / 1000;
+        const rate = done / elapsed;
+        const remaining = (total - done) / rate;
+        setProgress({ done, total, failed });
+        setEta(remaining);
       }
-      done += 1;
-      setProgress({ done, total, failed });
-    }
+    };
+
+    const workers = Array.from({ length: Math.min(CONCURRENT_REGEN, total) }, () => processOne());
+    await Promise.all(workers);
 
     setRunning(false);
+    setEta(null);
   };
 
   const percent = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
@@ -237,7 +263,7 @@ const RegenerateThumbnails = ({ galleryId, images }) => {
         <DialogContent>
           {!running && progress.done === 0 && (
             <Typography>
-              This will regenerate thumbnails for all {images.length} images one at a time. Existing thumbnails will be replaced.
+              This will regenerate thumbnails for all {images.length} images. Existing thumbnails will be replaced.
             </Typography>
           )}
           {(running || progress.done > 0) && (
@@ -246,7 +272,9 @@ const RegenerateThumbnails = ({ galleryId, images }) => {
                 <Typography variant="body2">
                   {progress.done} / {progress.total} images processed
                 </Typography>
-                <Typography variant="body2">{percent}%</Typography>
+                <Typography variant="body2">
+                  {percent}%{running && eta !== null ? ` - ${formatEta(eta)} remaining` : ''}
+                </Typography>
               </Box>
               <LinearProgress variant="determinate" value={percent} />
               {progress.failed > 0 && (
@@ -254,7 +282,7 @@ const RegenerateThumbnails = ({ galleryId, images }) => {
                   {progress.failed} failed
                 </Typography>
               )}
-              {!running && progress.done === progress.total && (
+              {!running && progress.done === progress.total && progress.total > 0 && (
                 <Typography variant="body2" color="success.main" sx={{ mt: 1 }}>
                   Complete
                 </Typography>

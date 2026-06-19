@@ -1,0 +1,22 @@
+frontend/src/components/admin/ImageUploader.jsx
+  s_c3211f46a3a016::t_6497cad114b177 91-107
+  s_c3211f46a3a016::t_921cbd727854ba 7,12,27-34,45-46
+  s_c3211f46a3a016::t_7f9f986b267b86 170-185
+  s_c3211f46a3a016::t_f19cc17a07eb4a 51-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "2551453163a73a42745c5fd6866392360dbc9330",
+  "prompts": {},
+  "sessions": {
+    "s_c3211f46a3a016": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "16548077-aecd-463e-b5f6-b25c6b749740",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "John McCann Cunniff Jr <johncunniff1248@gmail.com>"
+    }
+  }
+}

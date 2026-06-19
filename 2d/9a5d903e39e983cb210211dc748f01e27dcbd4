@@ -1,0 +1,30 @@
+frontend/src/services/api.js
+  s_c3211f46a3a016::t_5b3a24bb5adca3 61
+frontend/src/components/admin/GalleryDetails.jsx
+  s_c3211f46a3a016::t_6c27eba2a9283d 11
+  s_c3211f46a3a016::t_619d353db2c925 164-171
+  s_c3211f46a3a016::t_55cb9b8e4f2323 107-117
+  s_c3211f46a3a016::t_3a7828d04b019c 193-224
+backend/app/services/image_processor.py
+  s_c3211f46a3a016::t_fe9d1a530b809e 2,11-12,15-21,33-38
+backend/app/api/images.py
+  s_c3211f46a3a016::t_8a0edcc6371265 11
+  s_c3211f46a3a016::t_2e8d16b6372a25 223-246
+  s_c3211f46a3a016::t_2c240ab37314b8 70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "2d9a5d903e39e983cb210211dc748f01e27dcbd4",
+  "prompts": {},
+  "sessions": {
+    "s_c3211f46a3a016": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "16548077-aecd-463e-b5f6-b25c6b749740",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "John McCann Cunniff Jr <johncunniff1248@gmail.com>"
+    }
+  }
+}

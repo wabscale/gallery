@@ -6,6 +6,23 @@ import { galleriesAPI, downloadsAPI } from '../../services/api';
 import ImageThumbnail from './ImageThumbnail';
 import ImageModal from './ImageModal';
 import PasswordPrompt from './PasswordPrompt';
+import EmailPrompt from './EmailPrompt';
+
+const getGridSize = (aspectRatio) => {
+  switch (aspectRatio) {
+    case '1x1':
+      return { xs: 6, sm: 4, md: 3, lg: 3 };
+    case '9x16':
+      return { xs: 6, sm: 4, md: 3, lg: 2 };
+    case '16x9':
+      return { xs: 12, sm: 6, md: 4 };
+    case '5x4':
+      return { xs: 12, sm: 6, md: 4 };
+    case '4x5':
+    default:
+      return { xs: 6, sm: 4, md: 3, lg: 2 };
+  }
+};
 
 const GalleryGrid = () => {
   const { slug } = useParams();
@@ -13,6 +30,8 @@ const GalleryGrid = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [requiresPassword, setRequiresPassword] = useState(false);
+  const [requiresEmail, setRequiresEmail] = useState(false);
+  const [galleryName, setGalleryName] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [downloadStatus, setDownloadStatus] = useState(null);
@@ -30,9 +49,13 @@ const GalleryGrid = () => {
       const response = await galleriesAPI.getBySlug(slug);
       setGallery(response.data);
       setRequiresPassword(false);
+      setRequiresEmail(false);
     } catch (err) {
       if (err.response?.data?.requires_password) {
         setRequiresPassword(true);
+      } else if (err.response?.data?.requires_email) {
+        setRequiresEmail(true);
+        setGalleryName(err.response?.data?.gallery_name || '');
       } else {
         setError(err.response?.data?.error || 'Failed to load gallery');
       }
@@ -120,6 +143,18 @@ const GalleryGrid = () => {
     );
   }
 
+  if (requiresEmail) {
+    return (
+      <EmailPrompt
+        open={requiresEmail}
+        onClose={() => window.location.href = '/'}
+        slug={slug}
+        galleryName={galleryName}
+        onSuccess={loadGallery}
+      />
+    );
+  }
+
   if (error) {
     return (
       <Container maxWidth="md" sx={{ mt: 4 }}>
@@ -133,7 +168,12 @@ const GalleryGrid = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4" component="h1">{gallery.name}</Typography>
+        <Box>
+          <Typography variant="h4" component="h1">{gallery.name}</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {gallery.image_count} {gallery.image_count === 1 ? 'photo' : 'photos'}
+          </Typography>
+        </Box>
         {gallery.allow_download && (
           <Button
             variant="contained"
@@ -148,10 +188,11 @@ const GalleryGrid = () => {
 
       <Grid container spacing={2}>
         {gallery.images.map((image, index) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={image.id}>
+          <Grid size={getGridSize(gallery.thumbnail_aspect_ratio || '4x5')} key={image.id}>
             <ImageThumbnail
               image={image}
               galleryId={gallery.id}
+              aspectRatio={gallery.thumbnail_aspect_ratio || '4x5'}
               onClick={() => handleImageClick(image, index)}
             />
           </Grid>

@@ -1,10 +1,11 @@
 import os
+from datetime import datetime
 from flask import Blueprint, request, jsonify, send_file, current_app, session
 from flask_login import current_user
 from werkzeug.utils import secure_filename
 from PIL import Image as PILImage
 from app import cache
-from app.models import db, Gallery, Image
+from app.models import db, Gallery, Image, GalleryAccessLog
 from app.utils.decorators import admin_required, audit_log
 from app.utils.helpers import generate_unique_filename, allowed_file
 from app.services.image_processor import generate_thumbnail, apply_watermark
@@ -42,6 +43,7 @@ def upload_image(gallery_id):
         width, height = img.size
 
     file_size = os.path.getsize(file_path)
+    file_mtime = datetime.utcfromtimestamp(os.path.getmtime(file_path))
 
     max_order = db.session.query(db.func.max(Image.order)).filter_by(gallery_id=gallery.id).scalar() or 0
 
@@ -53,6 +55,7 @@ def upload_image(gallery_id):
         width=width,
         height=height,
         file_path=file_path,
+        file_modified_at=file_mtime,
         order=max_order + 1,
         uploaded_by=current_user.id
     )
@@ -124,6 +127,19 @@ def serve_full_image(gallery_id, image_id):
 
     if not os.path.exists(file_path):
         return jsonify({'error': 'Image not found'}), 404
+
+    if gallery.collect_emails and not current_user.is_authenticated:
+        visitor_email = request.cookies.get(f'gallery_email_{gallery.id}')
+        if visitor_email:
+            access_log = GalleryAccessLog(
+                gallery_id=gallery.id,
+                email=visitor_email,
+                action='view_image',
+                image_id=image.id,
+                ip_address=request.remote_addr
+            )
+            db.session.add(access_log)
+            db.session.commit()
 
     return send_file(file_path, mimetype='image/jpeg', as_attachment=False, download_name=image.original_filename)
 

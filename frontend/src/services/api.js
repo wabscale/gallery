@@ -37,12 +37,14 @@ export const galleriesAPI = {
   listPublic: () => api.get('/galleries'),
   getBySlug: (slug) => api.get(`/galleries/${slug}`),
   authenticate: (slug, password) => api.post(`/galleries/${slug}/authenticate`, { password }),
+  submitEmail: (slug, email) => api.post(`/galleries/${slug}/submit-email`, { email }),
 
   listAll: () => api.get('/admin/galleries'),
   create: (data) => api.post('/admin/galleries', data),
   get: (id) => api.get(`/admin/galleries/${id}`),
   update: (id, data) => api.put(`/admin/galleries/${id}`, data),
-  delete: (id) => api.delete(`/admin/galleries/${id}`)
+  delete: (id) => api.delete(`/admin/galleries/${id}`),
+  getAccessLogs: (id, page = 1, perPage = 50) => api.get(`/admin/galleries/${id}/access-logs`, { params: { page, per_page: perPage } })
 };
 
 export const imagesAPI = {
@@ -69,4 +71,18 @@ export const downloadsAPI = {
 export const adminAPI = {
   getMetrics: () => api.get('/auth/admin/metrics'),
   getAuditLogs: (page = 1, perPage = 50) => api.get('/auth/admin/audit-logs', { params: { page, per_page: perPage } })
+};
+
+export const siteSettingsAPI = {
+  getPublic: () => api.get('/site-settings'),
+  get: () => api.get('/admin/site-settings'),
+  update: (data) => api.put('/admin/site-settings', data),
+  uploadFavicon: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/admin/site-settings/favicon', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  deleteFavicon: () => api.delete('/admin/site-settings/favicon')
 };

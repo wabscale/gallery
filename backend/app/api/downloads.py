@@ -3,7 +3,7 @@ import secrets
 from flask import Blueprint, request, jsonify, send_file, current_app, session
 from flask_login import current_user
 from redis import Redis
-from app.models import Gallery, Image
+from app.models import db, Gallery, Image, GalleryAccessLog
 from app.services.zip_generator import create_zip_task
 from app.services.audit_logger import log_action
 
@@ -43,6 +43,18 @@ def request_zip_download(slug):
             details={'task_id': task_id, 'image_count': len(images)},
             ip_address=request.remote_addr
         )
+
+    if gallery.collect_emails and not current_user.is_authenticated:
+        visitor_email = request.cookies.get(f'gallery_email_{gallery.id}')
+        if visitor_email:
+            access_log = GalleryAccessLog(
+                gallery_id=gallery.id,
+                email=visitor_email,
+                action='download_gallery',
+                ip_address=request.remote_addr
+            )
+            db.session.add(access_log)
+            db.session.commit()
 
     return jsonify({
         'task_id': task_id,

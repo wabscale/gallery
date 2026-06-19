@@ -4,10 +4,12 @@ import { CloudUpload, CheckCircle, Error, Delete, Replay } from '@mui/icons-mate
 import { imagesAPI } from '../../services/api';
 
 const MAX_RETRIES = 3;
+const MAX_CONCURRENT = 5;
 
 const ImageUploader = ({ galleryId, onUploadComplete }) => {
   const [uploadQueue, setUploadQueue] = useState([]);
   const activeUploadsRef = useRef(0);
+  const pendingQueueRef = useRef([]);
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
@@ -22,6 +24,14 @@ const ImageUploader = ({ galleryId, onUploadComplete }) => {
     uploadFiles(files);
   };
 
+  const processNext = () => {
+    while (activeUploadsRef.current < MAX_CONCURRENT && pendingQueueRef.current.length > 0) {
+      const next = pendingQueueRef.current.shift();
+      activeUploadsRef.current += 1;
+      uploadFile(next);
+    }
+  };
+
   const uploadFiles = (files) => {
     const newUploads = files.map(file => ({
       id: Math.random().toString(36),
@@ -32,17 +42,15 @@ const ImageUploader = ({ galleryId, onUploadComplete }) => {
     }));
 
     setUploadQueue(prev => [...prev, ...newUploads]);
-    activeUploadsRef.current += newUploads.length;
-
-    newUploads.forEach(upload => {
-      uploadFile(upload);
-    });
+    pendingQueueRef.current.push(...newUploads);
+    processNext();
   };
 
   const onFileFinished = () => {
     activeUploadsRef.current -= 1;
-    if (activeUploadsRef.current <= 0 && onUploadComplete) {
-      activeUploadsRef.current = 0;
+    if (activeUploadsRef.current < 0) activeUploadsRef.current = 0;
+    processNext();
+    if (activeUploadsRef.current <= 0 && pendingQueueRef.current.length === 0 && onUploadComplete) {
       onUploadComplete();
     }
   };
@@ -80,8 +88,23 @@ const ImageUploader = ({ galleryId, onUploadComplete }) => {
   };
 
   const retryUpload = (upload) => {
-    activeUploadsRef.current += 1;
-    uploadFile(upload, 1);
+    updateUploadStatus(upload.id, { status: 'queued', progress: 0, error: null });
+    pendingQueueRef.current.push(upload);
+    processNext();
+  };
+
+  const retryAll = () => {
+    setUploadQueue(prev => {
+      const failed = prev.filter(u => u.status === 'error');
+      failed.forEach(u => {
+        u.status = 'queued';
+        u.progress = 0;
+        u.error = null;
+        pendingQueueRef.current.push(u);
+      });
+      processNext();
+      return [...prev];
+    });
   };
 
   const updateUploadStatus = (id, updates) => {
@@ -144,11 +167,22 @@ const ImageUploader = ({ galleryId, onUploadComplete }) => {
             <Typography variant="h6">
               Upload Queue ({uploadQueue.filter(u => u.status === 'completed').length} / {uploadQueue.length})
             </Typography>
-            {uploadQueue.every(u => u.status === 'completed' || u.status === 'error') && (
-              <IconButton size="small" onClick={() => setUploadQueue([])}>
-                <Delete fontSize="small" />
-              </IconButton>
-            )}
+            <Box display="flex" gap={0.5}>
+              {uploadQueue.some(u => u.status === 'error') && (
+                <Tooltip title="Retry All Failed">
+                  <IconButton size="small" onClick={retryAll}>
+                    <Replay fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {uploadQueue.every(u => u.status === 'completed' || u.status === 'error') && (
+                <Tooltip title="Clear All">
+                  <IconButton size="small" onClick={() => setUploadQueue([])}>
+                    <Delete fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
           </Box>
           <List sx={{ maxHeight: 300, overflow: 'auto' }} dense>
             {uploadQueue.map(upload => (

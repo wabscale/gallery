@@ -1,0 +1,63 @@
+frontend/src/components/admin/AdminDashboard.jsx
+  s_c3211f46a3a016::t_149e5603ece55b 52-54
+frontend/src/components/admin/SiteSettings.jsx
+  s_c3211f46a3a016::t_6e0fe1a03d78f3 1-3,6-8,10-12,15-28,31-44,46-60,62-119,135-190
+  s_c3211f46a3a016::t_c2cf8ad9e49050 13
+  s_c3211f46a3a016::t_d55e588a438307 61
+  s_c3211f46a3a016::t_cb648de441054f 29
+  s_c3211f46a3a016::t_016fc481879a08 30
+  s_c3211f46a3a016::t_31c664a59604ea 45
+  s_c3211f46a3a016::t_0bf2c9370c7098 4-5
+  s_c3211f46a3a016::t_cb63be875f4217 9
+  s_c3211f46a3a016::t_ad81153ac96fa4 120-134
+  s_c3211f46a3a016::t_b54748fcd79b82 14
+frontend/src/components/gallery/GalleryCard.jsx
+  s_c3211f46a3a016::t_d1ebe73db79669 5-13
+  s_c3211f46a3a016::t_6163139a7c0655 35-36
+  s_c3211f46a3a016::t_4b9c09cd7aaba1 26
+  s_c3211f46a3a016::t_95da964608b287 87
+frontend/src/App.jsx
+  s_c3211f46a3a016::t_53a5e1d347344f 109
+  s_c3211f46a3a016::t_2e88b2e3afe303 70,81
+  s_c3211f46a3a016::t_5bc9837760015a 14
+  s_c3211f46a3a016::t_634526d0e83960 94
+  s_c3211f46a3a016::t_7e02bdcc120258 6
+  s_c3211f46a3a016::t_441f5a986cc204 105
+backend/app/__init__.py
+  s_c3211f46a3a016::t_05141cb17110f8 46,51
+backend/app/api/site_settings.py
+  s_c3211f46a3a016::t_55fca618796eb2 1-8,10-86
+  s_c3211f46a3a016::t_f1709e270242be 9
+frontend/src/components/gallery/ImageThumbnail.jsx
+  s_c3211f46a3a016::t_24d02be40f1e00 13
+  s_c3211f46a3a016::t_f175efaabe6b93 5-12,39,42
+  s_c3211f46a3a016::t_98a86904a3eefe 18
+frontend/src/hooks/useSiteSettings.jsx
+  s_c3211f46a3a016::t_631d1840685596 1-17,19-27,29-63
+  s_c3211f46a3a016::t_b72cd312b03679 28
+  s_c3211f46a3a016::t_2876cfe95ec06c 18
+frontend/src/components/gallery/GalleryList.jsx
+  s_c3211f46a3a016::t_cfb84144177c4b 9-10,17,19
+  s_c3211f46a3a016::t_bef9bbcbe8c55d 24
+  s_c3211f46a3a016::t_1d7c06df44d78b 4,7-8,11-16,18,20-21
+  s_c3211f46a3a016::t_874a9a0bfae649 53
+compose.yml
+  s_c3211f46a3a016::t_1ecc60f9a4af09 79-87,94-95,102-104,109-115,120-122
+  s_c3211f46a3a016::t_428a77b54f439f 88-93,96-101,116-119,123-125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "ce6b12c3fe490ed4d89bafd7c799acb495e66f87",
+  "prompts": {},
+  "sessions": {
+    "s_c3211f46a3a016": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "16548077-aecd-463e-b5f6-b25c6b749740",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "John McCann Cunniff Jr <johncunniff1248@gmail.com>"
+    }
+  }
+}

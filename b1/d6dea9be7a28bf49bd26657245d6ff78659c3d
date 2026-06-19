@@ -1,0 +1,24 @@
+frontend/src/components/admin/GalleryDetails.jsx
+  s_c3211f46a3a016::t_0e793afe7d9ba8 210,212,214,216
+  s_c3211f46a3a016::t_50fa552972af48 240
+backend/app/api/images.py
+  s_c3211f46a3a016::t_b01d100cf093fa 247,249,251,256-263,265-266
+frontend/src/services/api.js
+  s_c3211f46a3a016::t_3edaf9b5412945 62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "b1d6dea9be7a28bf49bd26657245d6ff78659c3d",
+  "prompts": {},
+  "sessions": {
+    "s_c3211f46a3a016": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "16548077-aecd-463e-b5f6-b25c6b749740",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "John McCann Cunniff Jr <johncunniff1248@gmail.com>"
+    }
+  }
+}

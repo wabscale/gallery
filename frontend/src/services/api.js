@@ -59,6 +59,7 @@ export const imagesAPI = {
   },
   delete: (id) => api.delete(`/admin/images/${id}`),
   deleteAll: (galleryId) => api.delete(`/admin/galleries/${galleryId}/images`),
+  regenerateThumbnails: (galleryId) => api.post(`/admin/galleries/${galleryId}/regenerate-thumbnails`),
   updateVisibility: (id, isHidden) => api.put(`/admin/images/${id}/visibility`, { is_hidden: isHidden }),
   updateOrder: (id, order) => api.put(`/admin/images/${id}/order`, { order })
 };

@@ -244,6 +244,26 @@ def delete_all_images(gallery_id):
     return jsonify({'message': f'Deleted {len(images)} images'}), 200
 
 
+@bp.route('/api/admin/galleries/<int:gallery_id>/regenerate-thumbnails', methods=['POST'])
+@admin_required
+def regenerate_thumbnails(gallery_id):
+    gallery = Gallery.query.get_or_404(gallery_id)
+    images = Image.query.filter_by(gallery_id=gallery_id).all()
+
+    gallery_dir = os.path.join(current_app.config['GALLERY_DATA_PATH'], str(gallery_id))
+    thumbnails_dir = os.path.join(gallery_dir, 'thumbnails')
+
+    if os.path.exists(thumbnails_dir):
+        for f in os.listdir(thumbnails_dir):
+            os.remove(os.path.join(thumbnails_dir, f))
+
+    for image in images:
+        if os.path.exists(image.file_path):
+            generate_all_thumbnails(image.file_path, thumbnails_dir, gallery.thumbnail_quality)
+
+    return jsonify({'message': f'Regenerated thumbnails for {len(images)} images'}), 200
+
+
 @bp.route('/api/admin/images/<int:id>/visibility', methods=['PUT'])
 @admin_required
 @audit_log('update_visibility', 'image')

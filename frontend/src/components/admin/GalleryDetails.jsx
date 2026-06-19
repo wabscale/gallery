@@ -8,7 +8,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import {
-  Delete, DeleteForever, Visibility, VisibilityOff, PhotoCamera, Download
+  Delete, DeleteForever, Visibility, VisibilityOff, PhotoCamera, Download, Refresh
 } from '@mui/icons-material';
 import { galleriesAPI, imagesAPI } from '../../services/api';
 import ImageUploader from './ImageUploader';
@@ -115,6 +115,20 @@ const GalleryDetails = () => {
     }
   };
 
+  const [regenerating, setRegenerating] = useState(false);
+  const handleRegenerateThumbnails = async () => {
+    setRegenerating(true);
+    try {
+      const res = await imagesAPI.regenerateThumbnails(id);
+      setSuccess(res.data.message);
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError('Failed to regenerate thumbnails');
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
   if (loading) return <Typography>Loading...</Typography>;
   if (!gallery) return <Typography>Gallery not found</Typography>;
 
@@ -166,7 +180,18 @@ const GalleryDetails = () => {
                 Images ({images.length})
               </Typography>
               {images.length > 0 && (
-                <DeleteAllButton onConfirm={handleDeleteAllImages} count={images.length} />
+                <Box display="flex" gap={1}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<Refresh />}
+                    onClick={handleRegenerateThumbnails}
+                    disabled={regenerating}
+                  >
+                    {regenerating ? 'Regenerating...' : 'Regenerate Thumbnails'}
+                  </Button>
+                  <DeleteAllButton onConfirm={handleDeleteAllImages} count={images.length} />
+                </Box>
               )}
             </Box>
             {images.length === 0 ? (

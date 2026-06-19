@@ -1,0 +1,63 @@
+frontend/src/services/api.js
+  s_c3211f46a3a016::t_c0c3b024fb2d5d 40,46-47
+  s_c3211f46a3a016::t_6189e86e474f03 75-88
+backend/app/api/galleries.py
+  s_c3211f46a3a016::t_c28cbd7dfad3a1 264-265
+  s_c3211f46a3a016::t_b83bcd9dd2f246 106-141
+  s_c3211f46a3a016::t_18d6c87dd198b9 223
+  s_c3211f46a3a016::t_1a7399ee2e8e85 72
+  s_c3211f46a3a016::t_0bdb5a2813f75c 225
+  s_c3211f46a3a016::t_04388083dc42fb 14-26
+  s_c3211f46a3a016::t_883f6016eb190b 183
+  s_c3211f46a3a016::t_8fdde0d42a6715 266-267
+  s_c3211f46a3a016::t_7e25968e1cdfed 51-59,71
+  s_c3211f46a3a016::t_11eabefd600eef 214,224
+  s_c3211f46a3a016::t_65a6f8dd351dc7 182
+  s_c3211f46a3a016::t_8216e3fcb24854 181
+  s_c3211f46a3a016::t_81a90e664026d4 268-269
+  s_c3211f46a3a016::t_85b571e4dd05a6 3,6
+  s_c3211f46a3a016::t_fdfe5866006d39 312-340
+  s_c3211f46a3a016::t_c068af8798365b 60-62
+frontend/src/components/gallery/EmailPrompt.jsx
+  s_c3211f46a3a016::t_0b970c8e2d17e0 1-56
+backend/app/models.py
+  s_c3211f46a3a016::t_504403a553301c 81-101
+  s_c3211f46a3a016::t_62b5e1fcc42507 41
+  s_c3211f46a3a016::t_1f156edb0c8332 35,49
+  s_c3211f46a3a016::t_cedaac398f7933 40
+  s_c3211f46a3a016::t_742419c2d8a1c5 74
+  s_c3211f46a3a016::t_3a7e25c5a71db0 102-126
+backend/app/api/images.py
+  s_c3211f46a3a016::t_ee87d7d6d512a2 131-143
+  s_c3211f46a3a016::t_0b0c601fc69856 2
+  s_c3211f46a3a016::t_c1bfb8b4a986d5 8
+  s_c3211f46a3a016::t_986f0de87501f0 46,58
+backend/app/api/downloads.py
+  s_c3211f46a3a016::t_79398399d67ceb 6
+  s_c3211f46a3a016::t_e35649fa9a65cf 47-58
+frontend/src/components/gallery/GalleryGrid.jsx
+  s_c3211f46a3a016::t_b8b87421fbe9c4 33-34
+  s_c3211f46a3a016::t_1f4a3f1f26dd07 191,195
+  s_c3211f46a3a016::t_5e68754560548e 9
+  s_c3211f46a3a016::t_1a08b377c05213 11-12,15-20,22,24-25
+  s_c3211f46a3a016::t_2b3bb93d382d6a 13-14,21,23
+  s_c3211f46a3a016::t_699d18ff8b9de5 171-176
+  s_c3211f46a3a016::t_9448b7bf6870e8 146-157
+  s_c3211f46a3a016::t_d6b1329392946a 52,56-58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "9bc386132d01cf117f78c661c311f281df11a488",
+  "prompts": {},
+  "sessions": {
+    "s_c3211f46a3a016": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "16548077-aecd-463e-b5f6-b25c6b749740",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "John McCann Cunniff Jr <johncunniff1248@gmail.com>"
+    }
+  }
+}

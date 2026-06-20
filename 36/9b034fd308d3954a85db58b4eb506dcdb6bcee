@@ -1,0 +1,45 @@
+frontend/src/components/admin/GalleryDetails.jsx
+  s_1708c2a7f98fd2::t_dcef7dbc5b067b 632
+  s_1708c2a7f98fd2::t_77c28d411363a7 1138
+  s_1708c2a7f98fd2::t_28a557613f02d3 740,744,758,763,766,778,780,784,786-789,810-813,817-887,944
+  s_1708c2a7f98fd2::t_57ed6a9f13e706 1
+  s_1708c2a7f98fd2::t_925c705c77c98c 597,950-955
+  s_1708c2a7f98fd2::t_2c7ef1c69956e9 17-38,97,101,671,683,687
+  s_1708c2a7f98fd2::t_f08ccc96d3e705 576
+  s_1708c2a7f98fd2::t_7794a431fbd320 481,486
+  s_1708c2a7f98fd2::t_2c05b4783968d6 679-680
+  s_1708c2a7f98fd2::t_589734629bad6b 392-397,399,401-406,412,693,697,699,702-703,706,710,712-713,717,1005,1009
+  s_1708c2a7f98fd2::t_fd53b94a2bbc8f 425,429-431,433,437,445,449,454,458
+  s_1708c2a7f98fd2::t_51795dd6ee4ef7 962
+  s_1708c2a7f98fd2::t_03bee2b772485a 85,87-95
+  s_1708c2a7f98fd2::t_4fbc74489f9e79 948,1025-1031,1054,1068
+  s_1708c2a7f98fd2::t_fe78bb81244ade 175,434-436,438-444,446-448,450-453,459-460,1012
+  s_1708c2a7f98fd2::t_76f15379d23b2c 767-771
+  s_1708c2a7f98fd2::t_13da3125b684df 605
+  s_1708c2a7f98fd2::t_fa40deb0a58662 609
+  s_1708c2a7f98fd2::t_b8a65a833b1bc4 574-575,577-580,598
+  s_1708c2a7f98fd2::t_dcd139137d6b33 655
+  s_1708c2a7f98fd2::t_ac268e3b558ef9 890,892-893,897-917,924,1033,1053
+  s_1708c2a7f98fd2::t_347150193172d3 398,400,407-409
+  s_1708c2a7f98fd2::t_e52094f66d7dc1 312-316
+  s_1708c2a7f98fd2::t_8e826eacca005f 654
+  s_1708c2a7f98fd2::t_3dc38a5d118d71 419
+frontend/src/services/api.js
+  s_1708c2a7f98fd2::t_e60dbe415f1324 47-48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "369b034fd308d3954a85db58b4eb506dcdb6bcee",
+  "prompts": {},
+  "sessions": {
+    "s_1708c2a7f98fd2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1e055299-0ffa-4f9a-80f9-00c171919bce",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "John McCann Cunniff Jr <johncunniff1248@gmail.com>"
+    }
+  }
+}

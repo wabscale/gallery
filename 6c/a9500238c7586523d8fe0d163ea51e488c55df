@@ -1,0 +1,44 @@
+backend/app/models.py
+  s_1708c2a7f98fd2::t_89bf46dce0f194 51
+  s_1708c2a7f98fd2::t_d8b1402a18851f 30-31
+  s_1708c2a7f98fd2::t_b6844422cb5e31 50
+backend/app/api/images.py
+  s_1708c2a7f98fd2::t_3a68e5512c0f44 200-201
+  s_1708c2a7f98fd2::t_a9f0f0221da57d 430
+  s_1708c2a7f98fd2::t_fd6a08a66256fc 30
+  s_1708c2a7f98fd2::t_4ab5e5b4ff9453 29
+  s_1708c2a7f98fd2::t_089bfcd6ddb3c6 431
+  s_1708c2a7f98fd2::t_80fab8fff4ff0e 179,350
+  s_1708c2a7f98fd2::t_0d4f1712ec102a 168-169
+  s_1708c2a7f98fd2::t_48d3026c0a0360 17,31
+backend/app/api/galleries.py
+  s_1708c2a7f98fd2::t_b5268aa0470e69 198
+  s_1708c2a7f98fd2::t_0c8390dcc33fe9 199
+  s_1708c2a7f98fd2::t_98f5eeee62bf33 179-180
+  s_1708c2a7f98fd2::t_afe99113d28c9b 252
+  s_1708c2a7f98fd2::t_f2386d9b69997b 351
+  s_1708c2a7f98fd2::t_9745032c393683 253
+  s_1708c2a7f98fd2::t_b9cc231b7b2d8e 67-68
+  s_1708c2a7f98fd2::t_fd436cc606956b 232-233
+  s_1708c2a7f98fd2::t_17757a99d041b2 331-332
+  s_1708c2a7f98fd2::t_815cc0dcbfcc9e 386-413
+  s_1708c2a7f98fd2::t_7830d206188885 352
+  s_1708c2a7f98fd2::t_41aa64ba7425dc 285-288
+  s_1708c2a7f98fd2::t_3098ce06f04433 333-334
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "6ca9500238c7586523d8fe0d163ea51e488c55df",
+  "prompts": {},
+  "sessions": {
+    "s_1708c2a7f98fd2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1e055299-0ffa-4f9a-80f9-00c171919bce",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "John McCann Cunniff Jr <johncunniff1248@gmail.com>"
+    }
+  }
+}

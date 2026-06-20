@@ -44,7 +44,8 @@ export const galleriesAPI = {
   get: (id) => api.get(`/admin/galleries/${id}`),
   update: (id, data) => api.put(`/admin/galleries/${id}`, data),
   delete: (id) => api.delete(`/admin/galleries/${id}`),
-  getAccessLogs: (id, page = 1, perPage = 50) => api.get(`/admin/galleries/${id}/access-logs`, { params: { page, per_page: perPage } })
+  getAccessLogs: (id, page = 1, perPage = 50) => api.get(`/admin/galleries/${id}/access-logs`, { params: { page, per_page: perPage } }),
+  clearCache: (id, type) => api.post(`/admin/galleries/${id}/clear-cache`, { type })
 };
 
 export const imagesAPI = {
@@ -60,6 +61,15 @@ export const imagesAPI = {
   delete: (id) => api.delete(`/admin/images/${id}`),
   deleteAll: (galleryId) => api.delete(`/admin/galleries/${galleryId}/images`),
   regenerateThumbnail: (galleryId, imageId) => api.post(`/admin/galleries/${galleryId}/regenerate-thumbnail/${imageId}`),
+  regenerateWatermark: (galleryId, imageId) => api.post(`/admin/galleries/${galleryId}/regenerate-watermark/${imageId}`),
+  uploadWatermarkImage: (galleryId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/admin/galleries/${galleryId}/watermark-image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  deleteWatermarkImage: (galleryId) => api.delete(`/admin/galleries/${galleryId}/watermark-image`),
   updateVisibility: (id, isHidden) => api.put(`/admin/images/${id}/visibility`, { is_hidden: isHidden }),
   updateOrder: (id, order) => api.put(`/admin/images/${id}/order`, { order })
 };

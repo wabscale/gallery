@@ -1,18 +1,40 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import {
   Container, Typography, Paper, Grid, TextField, FormControlLabel,
-  Switch, Button, Box, Alert, FormControl, InputLabel,
-  Select, MenuItem, IconButton, Chip, Tooltip, Table, TableBody,
+  Switch, Button, Box, Alert, FormControl, InputLabel, Slider, Divider,
+  Select, MenuItem, IconButton, Chip, Tooltip, Table, TableBody, Snackbar,
   TableCell, TableContainer, TableHead, TableRow, TablePagination,
   Dialog, DialogTitle, DialogContent, DialogActions, LinearProgress
 } from '@mui/material';
 import {
-  Delete, DeleteForever, Visibility, VisibilityOff, PhotoCamera, Download, Refresh
+  Delete, DeleteForever, Visibility, VisibilityOff, PhotoCamera, Download, Refresh, Settings
 } from '@mui/icons-material';
 import { galleriesAPI, imagesAPI } from '../../services/api';
 import ImageUploader from './ImageUploader';
 import ImageModal from '../gallery/ImageModal';
+
+const DebouncedTextField = memo(({ value: externalValue, onChange, ...props }) => {
+  const [localValue, setLocalValue] = useState(externalValue);
+  const timeoutRef = useRef(null);
+
+  useEffect(() => {
+    setLocalValue(externalValue);
+  }, [externalValue]);
+
+  const handleChange = (e) => {
+    const val = e.target.value;
+    setLocalValue(val);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => onChange(val), 300);
+  };
+
+  useEffect(() => {
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
+  }, []);
+
+  return <TextField value={localValue} onChange={handleChange} {...props} />;
+});
 
 const GalleryDetails = () => {
   const { id } = useParams();
@@ -47,21 +69,36 @@ const GalleryDetails = () => {
     }
   }, [id]);
 
-  const handleUpdate = async () => {
-    setError('');
-    setSuccess('');
-    try {
-      await galleriesAPI.update(id, gallery);
-      setSuccess('Gallery updated successfully');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to update gallery');
-    }
-  };
+  const saveTimeoutRef = useRef(null);
+  const pendingChangesRef = useRef({});
 
-  const handleChange = (field, value) => {
+  const saveChanges = useCallback(async (changes) => {
+    setError('');
+    try {
+      await galleriesAPI.update(id, changes);
+      setSuccess('Saved');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to save');
+    }
+  }, [id]);
+
+  const handleChange = useCallback((field, value) => {
     setGallery(prev => ({ ...prev, [field]: value }));
-  };
+    pendingChangesRef.current = { ...pendingChangesRef.current, [field]: value };
+
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      const changes = pendingChangesRef.current;
+      pendingChangesRef.current = {};
+      saveChanges(changes);
+    }, 800);
+  }, [saveChanges]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, []);
 
   const handleSetCover = async (imageId) => {
     const newCoverId = gallery.cover_image_id === imageId ? null : imageId;
@@ -69,7 +106,6 @@ const GalleryDetails = () => {
       await galleriesAPI.update(id, { cover_image_id: newCoverId });
       setGallery(prev => ({ ...prev, cover_image_id: newCoverId }));
       setSuccess(newCoverId ? 'Cover image set' : 'Cover image removed');
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError('Failed to update cover image');
     }
@@ -109,7 +145,6 @@ const GalleryDetails = () => {
       await imagesAPI.deleteAll(id);
       setGallery(prev => ({ ...prev, images: [], image_count: 0, cover_image_id: null }));
       setSuccess('All images deleted');
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError('Failed to delete images');
     }
@@ -131,7 +166,13 @@ const GalleryDetails = () => {
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+      <Snackbar
+        open={!!success}
+        autoHideDuration={2000}
+        onClose={() => setSuccess('')}
+        message={success}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
 
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 6 }}>
@@ -140,7 +181,6 @@ const GalleryDetails = () => {
             <GallerySettingsForm
               gallery={gallery}
               onChange={handleChange}
-              onSave={handleUpdate}
             />
           </Paper>
         </Grid>
@@ -167,8 +207,11 @@ const GalleryDetails = () => {
                 Images ({images.length})
               </Typography>
               {images.length > 0 && (
-                <Box display="flex" gap={1}>
+                <Box display="flex" gap={1} flexWrap="wrap">
                   <RegenerateThumbnails galleryId={gallery.id} images={images} />
+                  {gallery.watermark_enabled && (
+                    <RegenerateWatermarks galleryId={gallery.id} images={images} />
+                  )}
                   <DeleteAllButton onConfirm={handleDeleteAllImages} count={images.length} />
                 </Box>
               )}
@@ -266,6 +309,11 @@ const RegenerateThumbnails = ({ galleryId, images }) => {
               This will regenerate thumbnails for all {images.length} images. Existing thumbnails will be replaced.
             </Typography>
           )}
+          {running && (
+            <Typography variant="caption" color="warning.main" sx={{ mt: 1, display: 'block' }}>
+              Do not reload or navigate away from this page while processing.
+            </Typography>
+          )}
           {(running || progress.done > 0) && (
             <Box sx={{ mt: 1 }}>
               <Box display="flex" justifyContent="space-between" mb={1}>
@@ -341,187 +389,685 @@ const DeleteAllButton = ({ onConfirm, count }) => {
   );
 };
 
-const GallerySettingsForm = ({ gallery, onChange, onSave }) => {
+const ClearCacheButton = ({ galleryId, type, label }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleClear = async () => {
+    setLoading(true);
+    try {
+      await galleriesAPI.clearCache(galleryId, type);
+    } catch {
+      // handled silently
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button size="small" variant="outlined" onClick={handleClear} disabled={loading} fullWidth>
+      {loading ? 'Clearing...' : label}
+    </Button>
+  );
+};
+
+const SectionLabel = ({ children }) => (
+  <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mt: 2.5, mb: 0.5 }}>
+    {children}
+  </Typography>
+);
+
+const GallerySettingsForm = memo(({ gallery, onChange }) => {
+  const [watermarkOpen, setWatermarkOpen] = useState(false);
+
   return (
     <>
-      <TextField
+      {/* Identity */}
+      <DebouncedTextField
         fullWidth
         label="Gallery Name"
         value={gallery.name}
-        onChange={(e) => onChange('name', e.target.value)}
-        margin="normal"
+        onChange={(v) => onChange('name', v)}
+        margin="dense"
+        size="small"
       />
-
-      <TextField
+      <DebouncedTextField
+        fullWidth
+        label="Description"
+        value={gallery.description || ''}
+        onChange={(v) => onChange('description', v)}
+        margin="dense"
+        size="small"
+        multiline
+        minRows={2}
+        maxRows={5}
+        placeholder="Caption displayed below the gallery title"
+      />
+      <DebouncedTextField
+        fullWidth
+        label="Photographer Instagram"
+        value={gallery.photographer_instagram || ''}
+        onChange={(v) => onChange('photographer_instagram', v)}
+        margin="dense"
+        size="small"
+        placeholder="username (without @)"
+      />
+      <DebouncedTextField
         fullWidth
         label="Slug"
         value={gallery.slug}
-        onChange={(e) => onChange('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
-        margin="normal"
+        onChange={(v) => onChange('slug', v.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+        margin="dense"
+        size="small"
         helperText="URL path for this gallery"
       />
 
-      <Grid container spacing={1} sx={{ mt: 1 }}>
+      {/* Access & Privacy */}
+      <SectionLabel>Access</SectionLabel>
+      <Grid container spacing={0}>
         <Grid size={{ xs: 6 }}>
           <FormControlLabel
-            control={
-              <Switch
-                checked={gallery.is_public}
-                onChange={(e) => onChange('is_public', e.target.checked)}
-                size="small"
-              />
-            }
+            control={<Switch checked={gallery.is_public} onChange={(e) => onChange('is_public', e.target.checked)} size="small" />}
             label="Public"
           />
         </Grid>
         <Grid size={{ xs: 6 }}>
           <FormControlLabel
-            control={
-              <Switch
-                checked={gallery.allow_download}
-                onChange={(e) => onChange('allow_download', e.target.checked)}
-                size="small"
-              />
-            }
-            label="Downloads"
-          />
-        </Grid>
-        <Grid size={{ xs: 6 }}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={gallery.thumbnail_only}
-                onChange={(e) => onChange('thumbnail_only', e.target.checked)}
-                size="small"
-              />
-            }
-            label="Thumbnail Only"
-          />
-        </Grid>
-        <Grid size={{ xs: 6 }}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={gallery.collect_emails}
-                onChange={(e) => onChange('collect_emails', e.target.checked)}
-                size="small"
-              />
-            }
+            control={<Switch checked={gallery.collect_emails} onChange={(e) => onChange('collect_emails', e.target.checked)} size="small" />}
             label="Collect Emails"
           />
         </Grid>
-        <Grid size={{ xs: 6 }}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={gallery.watermark_enabled}
-                onChange={(e) => onChange('watermark_enabled', e.target.checked)}
-                size="small"
-              />
-            }
-            label="Watermark"
-          />
-        </Grid>
       </Grid>
-
       {!gallery.is_public && (
-        <TextField
+        <DebouncedTextField
           fullWidth
           type="password"
           label="Gallery Password"
           value={gallery.password || ''}
-          onChange={(e) => onChange('password', e.target.value)}
-          margin="normal"
+          onChange={(v) => onChange('password', v)}
+          margin="dense"
           size="small"
           placeholder={gallery.password_hash ? 'Leave empty to keep current' : 'Set a password'}
-          helperText={gallery.password_hash ? 'New password to change, empty to keep' : 'Set a password'}
         />
       )}
 
-      <FormControl fullWidth margin="normal" size="small">
-        <InputLabel>Image Sort Order</InputLabel>
-        <Select
-          value={gallery.image_sort || 'name_asc'}
-          label="Image Sort Order"
-          onChange={(e) => onChange('image_sort', e.target.value)}
-        >
-          <MenuItem value="name_asc">Name (A to Z)</MenuItem>
-          <MenuItem value="name_desc">Name (Z to A)</MenuItem>
-          <MenuItem value="modified_asc">Modified Time (oldest first)</MenuItem>
-          <MenuItem value="modified_desc">Modified Time (newest first)</MenuItem>
-          <MenuItem value="upload_asc">Upload Time (oldest first)</MenuItem>
-          <MenuItem value="upload_desc">Upload Time (newest first)</MenuItem>
-        </Select>
-      </FormControl>
-
-      <FormControl fullWidth margin="normal" size="small">
-        <InputLabel>Thumbnail Aspect Ratio</InputLabel>
-        <Select
-          value={gallery.thumbnail_aspect_ratio || '4x5'}
-          label="Thumbnail Aspect Ratio"
-          onChange={(e) => onChange('thumbnail_aspect_ratio', e.target.value)}
-        >
-          <MenuItem value="1x1">1:1 (Square)</MenuItem>
-          <MenuItem value="4x5">4:5 (Portrait)</MenuItem>
-          <MenuItem value="5x4">5:4 (Landscape)</MenuItem>
-          <MenuItem value="9x16">9:16 (Tall)</MenuItem>
-          <MenuItem value="16x9">16:9 (Wide)</MenuItem>
-        </Select>
-      </FormControl>
-
-      <FormControl fullWidth margin="normal" size="small">
-        <InputLabel>Hover Animation</InputLabel>
-        <Select
-          value={gallery.hover_animation || 'crossfade'}
-          label="Hover Animation"
-          onChange={(e) => onChange('hover_animation', e.target.value)}
-        >
-          <MenuItem value="crossfade">Crossfade</MenuItem>
-          <MenuItem value="flip">Flip-through</MenuItem>
-          <MenuItem value="glitch">Glitch</MenuItem>
-        </Select>
-      </FormControl>
-
-      {gallery.watermark_enabled && (
-        <>
-          <TextField
-            fullWidth
-            label="Watermark Text"
-            value={gallery.watermark_text || ''}
-            onChange={(e) => onChange('watermark_text', e.target.value)}
-            margin="normal"
-            size="small"
-            placeholder={gallery.name}
-            helperText="Empty uses gallery name"
-          />
-
+      {/* Display */}
+      <SectionLabel>Display</SectionLabel>
+      <Grid container spacing={1}>
+        <Grid size={{ xs: 6 }}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Aspect Ratio</InputLabel>
+            <Select
+              value={gallery.thumbnail_aspect_ratio || '4x5'}
+              label="Aspect Ratio"
+              onChange={(e) => onChange('thumbnail_aspect_ratio', e.target.value)}
+            >
+              <MenuItem value="1x1">1:1 Square</MenuItem>
+              <MenuItem value="4x5">4:5 Portrait</MenuItem>
+              <MenuItem value="5x4">5:4 Landscape</MenuItem>
+              <MenuItem value="9x16">9:16 Tall</MenuItem>
+              <MenuItem value="16x9">16:9 Wide</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid size={{ xs: 6 }}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Hover Effect</InputLabel>
+            <Select
+              value={gallery.hover_animation || 'crossfade'}
+              label="Hover Effect"
+              onChange={(e) => onChange('hover_animation', e.target.value)}
+            >
+              <MenuItem value="crossfade">Crossfade</MenuItem>
+              <MenuItem value="flip">Flip-through</MenuItem>
+              <MenuItem value="glitch">Glitch</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid size={{ xs: 6 }}>
+          <FormControl fullWidth size="small" sx={{ mt: 1 }}>
+            <InputLabel>Sort Order</InputLabel>
+            <Select
+              value={gallery.image_sort || 'name_asc'}
+              label="Sort Order"
+              onChange={(e) => onChange('image_sort', e.target.value)}
+            >
+              <MenuItem value="name_asc">Name (A-Z)</MenuItem>
+              <MenuItem value="name_desc">Name (Z-A)</MenuItem>
+              <MenuItem value="modified_asc">Modified (old)</MenuItem>
+              <MenuItem value="modified_desc">Modified (new)</MenuItem>
+              <MenuItem value="upload_asc">Uploaded (old)</MenuItem>
+              <MenuItem value="upload_desc">Uploaded (new)</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid size={{ xs: 6 }}>
           <TextField
             fullWidth
             type="number"
-            label="Watermark Opacity (%)"
-            value={gallery.watermark_opacity}
-            onChange={(e) => onChange('watermark_opacity', parseInt(e.target.value))}
-            margin="normal"
+            label="Thumbnail Quality"
+            value={gallery.thumbnail_quality}
+            onChange={(e) => onChange('thumbnail_quality', parseInt(e.target.value))}
             size="small"
-            inputProps={{ min: 0, max: 100 }}
+            sx={{ mt: 1 }}
+            inputProps={{ min: 1, max: 100 }}
           />
-        </>
-      )}
+        </Grid>
+      </Grid>
 
-      <TextField
-        fullWidth
-        type="number"
-        label="Thumbnail Quality"
-        value={gallery.thumbnail_quality}
-        onChange={(e) => onChange('thumbnail_quality', parseInt(e.target.value))}
-        margin="normal"
-        size="small"
-        inputProps={{ min: 1, max: 100 }}
+      {/* Delivery */}
+      <SectionLabel>Delivery</SectionLabel>
+      <Grid container spacing={0}>
+        <Grid size={{ xs: 6 }}>
+          <FormControlLabel
+            control={<Switch checked={gallery.allow_download} onChange={(e) => onChange('allow_download', e.target.checked)} size="small" />}
+            label="Allow Download"
+          />
+        </Grid>
+        <Grid size={{ xs: 6 }}>
+          <FormControlLabel
+            control={<Switch checked={gallery.thumbnail_only} onChange={(e) => onChange('thumbnail_only', e.target.checked)} size="small" />}
+            label="Thumbnail Only"
+          />
+        </Grid>
+      </Grid>
+
+      {/* Cache */}
+      <SectionLabel>Cache</SectionLabel>
+      <Box display="flex" flexDirection="column" gap={1}>
+        <ClearCacheButton galleryId={gallery.id} type="thumbnails" label="Clear Thumbnails" />
+        <ClearCacheButton galleryId={gallery.id} type="watermarks" label="Clear Watermarks" />
+      </Box>
+
+      {/* Watermark */}
+      <Divider sx={{ mt: 2.5, mb: 1.5 }} />
+      <Box display="flex" alignItems="center" justifyContent="space-between">
+        <FormControlLabel
+          control={<Switch checked={gallery.watermark_enabled} onChange={(e) => onChange('watermark_enabled', e.target.checked)} size="small" />}
+          label="Watermark"
+        />
+        {gallery.watermark_enabled && (
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<Settings />}
+            onClick={() => setWatermarkOpen(true)}
+          >
+            Watermark Settings
+          </Button>
+        )}
+      </Box>
+
+      <WatermarkDialog
+        open={watermarkOpen}
+        onClose={() => setWatermarkOpen(false)}
+        gallery={gallery}
+        onChange={onChange}
+        images={gallery.images || []}
       />
+    </>
+  );
+});
 
-      <Button variant="contained" onClick={onSave} sx={{ mt: 2 }} fullWidth>
-        Save Changes
+const POSITION_OPTIONS = [
+  { value: 'bottom_right', label: 'Bottom Right' },
+  { value: 'bottom_left', label: 'Bottom Left' },
+  { value: 'top_right', label: 'Top Right' },
+  { value: 'top_left', label: 'Top Left' },
+  { value: 'center', label: 'Center' },
+  { value: 'diagonal_lr', label: 'Diagonal (top-left to bottom-right)' },
+  { value: 'diagonal_rl', label: 'Diagonal (top-right to bottom-left)' },
+];
+
+const FONT_OPTIONS = [
+  { value: 'dejavu_sans', label: 'DejaVu Sans' },
+  { value: 'times', label: 'Times New Roman' },
+  { value: 'arial', label: 'Arial' },
+  { value: 'montserrat', label: 'Montserrat' },
+  { value: 'futura', label: 'Futura' },
+  { value: 'open_sans', label: 'Open Sans' },
+  { value: 'roboto', label: 'Roboto' },
+  { value: 'lato', label: 'Lato' },
+];
+
+const WatermarkDialog = memo(({ open, onClose, gallery, onChange, images }) => {
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const previewTimeoutRef = useRef(null);
+
+  const wmType = gallery.watermark_type || 'text';
+
+  const buildPreviewUrl = useCallback(() => {
+    const images = gallery.images || [];
+    if (images.length === 0) return null;
+    const imageId = images[0].id;
+    const params = new URLSearchParams({
+      text: gallery.watermark_text || gallery.name,
+      opacity: gallery.watermark_opacity,
+      position: gallery.watermark_position || 'bottom_right',
+      color: gallery.watermark_color || '#ffffff',
+      font: gallery.watermark_font || 'dejavu_sans',
+      font_size: gallery.watermark_font_size || 0,
+      type: gallery.watermark_type || 'text',
+      repeat: gallery.watermark_repeat || 'none',
+      spacing: gallery.watermark_spacing || 100,
+      grid_angle: gallery.watermark_grid_angle || 0,
+      quality: gallery.watermark_quality || 95,
+    });
+    return `/api/admin/galleries/${gallery.id}/watermark-preview/${imageId}?${params}&t=${Date.now()}`;
+  }, [gallery]);
+
+  const refreshPreview = useCallback(() => {
+    if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
+    previewTimeoutRef.current = setTimeout(() => {
+      const url = buildPreviewUrl();
+      if (url) {
+        setPreviewLoading(true);
+        setPreviewUrl(url);
+      }
+    }, 500);
+  }, [buildPreviewUrl]);
+
+  useEffect(() => {
+    if (open) refreshPreview();
+  }, [
+    open, gallery.watermark_text, gallery.watermark_opacity,
+    gallery.watermark_position, gallery.watermark_color,
+    gallery.watermark_font, gallery.watermark_font_size,
+    gallery.watermark_type, gallery.has_watermark_image,
+    gallery.watermark_repeat, gallery.watermark_spacing,
+    gallery.watermark_grid_angle, gallery.watermark_quality,
+    refreshPreview
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
+    };
+  }, []);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      await imagesAPI.uploadWatermarkImage(gallery.id, file);
+      onChange('watermark_type', 'image');
+      onChange('has_watermark_image', true);
+    } catch {
+      // error handled by parent
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleImageDelete = async () => {
+    try {
+      await imagesAPI.deleteWatermarkImage(gallery.id);
+      onChange('watermark_type', 'text');
+      onChange('has_watermark_image', false);
+    } catch {
+      // error handled by parent
+    }
+  };
+
+  const hasImages = (gallery.images || []).length > 0;
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>Watermark Settings</DialogTitle>
+      <DialogContent dividers>
+        <Grid container spacing={3}>
+          <Grid size={{ xs: 12, md: hasImages ? 5 : 12 }}>
+            {/* Type selector */}
+            <FormControl fullWidth margin="dense" size="small">
+              <InputLabel>Watermark Type</InputLabel>
+              <Select
+                value={wmType}
+                label="Watermark Type"
+                onChange={(e) => onChange('watermark_type', e.target.value)}
+              >
+                <MenuItem value="text">Text</MenuItem>
+                <MenuItem value="image">Image</MenuItem>
+              </Select>
+            </FormControl>
+
+            {wmType === 'image' && (
+              <Box sx={{ mt: 1, mb: 1 }}>
+                <Box display="flex" gap={1} alignItems="center">
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    component="label"
+                    disabled={uploading}
+                  >
+                    {uploading ? 'Uploading...' : gallery.has_watermark_image ? 'Replace Image' : 'Upload Image'}
+                    <input
+                      type="file"
+                      hidden
+                      accept=".png,.jpg,.jpeg,.svg"
+                      onChange={handleImageUpload}
+                    />
+                  </Button>
+                  {gallery.has_watermark_image && (
+                    <Button size="small" color="error" onClick={handleImageDelete}>
+                      Remove
+                    </Button>
+                  )}
+                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                  PNG, JPEG, or SVG. Scaled to 25% of image width.
+                </Typography>
+              </Box>
+            )}
+
+            {wmType === 'text' && (
+              <>
+                <DebouncedTextField
+                  fullWidth
+                  label="Watermark Text"
+                  value={gallery.watermark_text || ''}
+                  onChange={(v) => onChange('watermark_text', v)}
+                  margin="dense"
+                  size="small"
+                  placeholder={gallery.name}
+                  helperText="Empty uses gallery name"
+                />
+
+                <FormControl fullWidth margin="dense" size="small">
+                  <InputLabel>Font</InputLabel>
+                  <Select
+                    value={gallery.watermark_font || 'dejavu_sans'}
+                    label="Font"
+                    onChange={(e) => onChange('watermark_font', e.target.value)}
+                  >
+                    {FONT_OPTIONS.map(opt => (
+                      <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Font Size (px)"
+                  value={gallery.watermark_font_size || 0}
+                  onChange={(e) => onChange('watermark_font_size', parseInt(e.target.value) || 0)}
+                  margin="dense"
+                  size="small"
+                  inputProps={{ min: 0, max: 500 }}
+                  helperText="0 = auto-scale based on image width"
+                />
+
+                <Box sx={{ mt: 2, mb: 1 }}>
+                  <Typography variant="body2" gutterBottom>Color</Typography>
+                  <input
+                    type="color"
+                    value={gallery.watermark_color || '#ffffff'}
+                    onChange={(e) => onChange('watermark_color', e.target.value)}
+                    style={{ width: '100%', height: 36, border: 'none', cursor: 'pointer' }}
+                  />
+                </Box>
+              </>
+            )}
+
+            {/* Shared settings */}
+            <FormControl fullWidth margin="dense" size="small" sx={{ mt: 1 }}>
+              <InputLabel>Repeat Mode</InputLabel>
+              <Select
+                value={gallery.watermark_repeat || 'none'}
+                label="Repeat Mode"
+                onChange={(e) => onChange('watermark_repeat', e.target.value)}
+              >
+                <MenuItem value="none">Single (use position)</MenuItem>
+                <MenuItem value="grid">Repeating Grid</MenuItem>
+              </Select>
+            </FormControl>
+
+            {(gallery.watermark_repeat === 'grid') && (
+              <>
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="body2" gutterBottom>
+                    Grid Spacing: {gallery.watermark_spacing || 100}px
+                  </Typography>
+                  <Slider
+                    value={gallery.watermark_spacing || 100}
+                    onChange={(_, v) => onChange('watermark_spacing', v)}
+                    min={10}
+                    max={500}
+                    step={10}
+                    size="small"
+                  />
+                </Box>
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="body2" gutterBottom>
+                    Grid Angle: {gallery.watermark_grid_angle || 0}°
+                  </Typography>
+                  <Slider
+                    value={gallery.watermark_grid_angle || 0}
+                    onChange={(_, v) => onChange('watermark_grid_angle', v)}
+                    min={-90}
+                    max={90}
+                    step={5}
+                    size="small"
+                  />
+                </Box>
+              </>
+            )}
+
+            {(gallery.watermark_repeat !== 'grid') && (
+              <>
+                <FormControl fullWidth margin="dense" size="small">
+                  <InputLabel>Full Image Position</InputLabel>
+                  <Select
+                    value={gallery.watermark_position || 'bottom_right'}
+                    label="Full Image Position"
+                    onChange={(e) => onChange('watermark_position', e.target.value)}
+                  >
+                    {POSITION_OPTIONS.map(opt => (
+                      <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <FormControl fullWidth margin="dense" size="small">
+                  <InputLabel>Thumbnail Position</InputLabel>
+                  <Select
+                    value={gallery.watermark_position_thumbnail || 'bottom_right'}
+                    label="Thumbnail Position"
+                    onChange={(e) => onChange('watermark_position_thumbnail', e.target.value)}
+                  >
+                    {POSITION_OPTIONS.map(opt => (
+                      <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </>
+            )}
+
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" gutterBottom>
+                Opacity: {gallery.watermark_opacity}%
+              </Typography>
+              <Slider
+                value={gallery.watermark_opacity}
+                onChange={(_, v) => onChange('watermark_opacity', v)}
+                min={5}
+                max={100}
+                size="small"
+              />
+            </Box>
+
+            <Box sx={{ mt: 1 }}>
+              <Typography variant="body2" gutterBottom>
+                Output Quality: {gallery.watermark_quality || 95}%
+              </Typography>
+              <Slider
+                value={gallery.watermark_quality || 95}
+                onChange={(_, v) => onChange('watermark_quality', v)}
+                min={10}
+                max={100}
+                step={5}
+                size="small"
+              />
+              <Typography variant="caption" color="text.secondary">
+                Lower quality reduces file size and discourages downloading
+              </Typography>
+            </Box>
+          </Grid>
+
+          {hasImages && (
+            <Grid size={{ xs: 12, md: 7 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Preview
+              </Typography>
+              <Box sx={{
+                border: '1px solid', borderColor: 'divider', borderRadius: 1,
+                overflow: 'hidden', bgcolor: 'grey.100', minHeight: 200,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {previewLoading && !previewUrl && (
+                  <Typography color="text.secondary">Loading...</Typography>
+                )}
+                {previewUrl && (
+                  <img
+                    src={previewUrl}
+                    alt="Watermark preview"
+                    onLoad={() => setPreviewLoading(false)}
+                    onError={() => setPreviewLoading(false)}
+                    style={{
+                      width: '100%', display: 'block',
+                      opacity: previewLoading ? 0.5 : 1,
+                      transition: 'opacity 0.2s',
+                    }}
+                  />
+                )}
+              </Box>
+            </Grid>
+          )}
+        </Grid>
+        {images.length > 0 && (
+          <Box sx={{ mt: 2 }}>
+            <Divider sx={{ mb: 2 }} />
+            <RegenerateWatermarks galleryId={gallery.id} images={images} />
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+      </DialogActions>
+    </Dialog>
+  );
+});
+
+const RegenerateWatermarks = ({ galleryId, images }) => {
+  const [open, setOpen] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState({ done: 0, total: 0, failed: 0 });
+  const [eta, setEta] = useState(null);
+  const startTimeRef = useRef(null);
+
+  const start = async () => {
+    const total = images.length;
+    setRunning(true);
+    setProgress({ done: 0, total, failed: 0 });
+    setEta(null);
+    startTimeRef.current = Date.now();
+
+    let done = 0;
+    let failed = 0;
+    let i = 0;
+
+    const processOne = async () => {
+      while (true) {
+        const idx = i++;
+        if (idx >= total) return;
+        try {
+          await imagesAPI.regenerateWatermark(galleryId, images[idx].id);
+        } catch {
+          failed += 1;
+        }
+        done += 1;
+        const elapsed = (Date.now() - startTimeRef.current) / 1000;
+        const rate = done / elapsed;
+        const remaining = (total - done) / rate;
+        setProgress({ done, total, failed });
+        setEta(remaining);
+      }
+    };
+
+    const workers = Array.from({ length: Math.min(CONCURRENT_REGEN, total) }, () => processOne());
+    await Promise.all(workers);
+
+    setRunning(false);
+    setEta(null);
+  };
+
+  const percent = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+
+  return (
+    <>
+      <Button
+        size="small"
+        variant="outlined"
+        startIcon={<Refresh />}
+        onClick={() => setOpen(true)}
+      >
+        Regenerate Watermarks
       </Button>
+      <Dialog open={open} onClose={() => !running && setOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Regenerate Watermarks</DialogTitle>
+        <DialogContent>
+          {!running && progress.done === 0 && (
+            <Typography>
+              This will regenerate watermarked versions for all {images.length} images using current settings. Existing watermarked files will be replaced.
+            </Typography>
+          )}
+          {running && (
+            <Typography variant="caption" color="warning.main" sx={{ mt: 1, display: 'block' }}>
+              Do not reload or navigate away from this page while processing.
+            </Typography>
+          )}
+          {(running || progress.done > 0) && (
+            <Box sx={{ mt: 1 }}>
+              <Box display="flex" justifyContent="space-between" mb={1}>
+                <Typography variant="body2">
+                  {progress.done} / {progress.total} images processed
+                </Typography>
+                <Typography variant="body2">
+                  {percent}%{running && eta !== null ? ` - ${formatEta(eta)} remaining` : ''}
+                </Typography>
+              </Box>
+              <LinearProgress variant="determinate" value={percent} />
+              {progress.failed > 0 && (
+                <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                  {progress.failed} failed
+                </Typography>
+              )}
+              {!running && progress.done === progress.total && progress.total > 0 && (
+                <Typography variant="body2" color="success.main" sx={{ mt: 1 }}>
+                  Complete
+                </Typography>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {!running && progress.done === progress.total && progress.total > 0 ? (
+            <Button onClick={() => { setOpen(false); setProgress({ done: 0, total: 0, failed: 0 }); }}>
+              Close
+            </Button>
+          ) : (
+            <>
+              <Button onClick={() => setOpen(false)} disabled={running}>Cancel</Button>
+              <Button variant="contained" onClick={start} disabled={running}>
+                {running ? 'Processing...' : 'Start'}
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
     </>
   );
 };
@@ -589,7 +1135,7 @@ const ImageCard = ({
   image, galleryId, isCover,
   onSetCover, onToggleVisibility, onDelete, onClick
 }) => {
-  const thumbUrl = `/images/thumbnails/${galleryId}/${image.id}?size=small`;
+  const thumbUrl = `/images/thumbnails/${galleryId}/${image.id}?size=small&raw=true`;
 
   return (
     <Box sx={{

@@ -64,6 +64,8 @@ def get_gallery_by_slug(slug):
     return jsonify({
         'id': gallery.id,
         'name': gallery.name,
+        'description': gallery.description,
+        'photographer_instagram': gallery.photographer_instagram,
         'slug': gallery.slug,
         'is_public': gallery.is_public,
         'allow_download': gallery.allow_download,
@@ -174,6 +176,8 @@ def create_gallery():
 
     gallery = Gallery(
         name=name,
+        description=data.get('description'),
+        photographer_instagram=data.get('photographer_instagram'),
         slug=slug,
         is_public=data.get('is_public', True),
         allow_download=data.get('allow_download', True),
@@ -184,6 +188,15 @@ def create_gallery():
         watermark_enabled=data.get('watermark_enabled', False),
         watermark_opacity=data.get('watermark_opacity', 30),
         watermark_text=data.get('watermark_text'),
+        watermark_position=data.get('watermark_position', 'bottom_right'),
+        watermark_position_thumbnail=data.get('watermark_position_thumbnail', 'bottom_right'),
+        watermark_color=data.get('watermark_color', '#ffffff'),
+        watermark_font=data.get('watermark_font', 'dejavu_sans'),
+        watermark_font_size=data.get('watermark_font_size', 0),
+        watermark_repeat=data.get('watermark_repeat', 'none'),
+        watermark_spacing=data.get('watermark_spacing', 100),
+        watermark_grid_angle=data.get('watermark_grid_angle', 0),
+        watermark_quality=data.get('watermark_quality', 95),
         thumbnail_quality=data.get('thumbnail_quality', 85),
         hover_animation=data.get('hover_animation', 'crossfade'),
         owner_id=current_user.id
@@ -216,6 +229,8 @@ def get_gallery(id):
     return jsonify({
         'id': gallery.id,
         'name': gallery.name,
+        'description': gallery.description,
+        'photographer_instagram': gallery.photographer_instagram,
         'slug': gallery.slug,
         'is_public': gallery.is_public,
         'allow_download': gallery.allow_download,
@@ -226,6 +241,17 @@ def get_gallery(id):
         'watermark_enabled': gallery.watermark_enabled,
         'watermark_opacity': gallery.watermark_opacity,
         'watermark_text': gallery.watermark_text,
+        'watermark_position': gallery.watermark_position,
+        'watermark_position_thumbnail': gallery.watermark_position_thumbnail,
+        'watermark_color': gallery.watermark_color,
+        'watermark_font': gallery.watermark_font,
+        'watermark_font_size': gallery.watermark_font_size,
+        'watermark_type': gallery.watermark_type,
+        'watermark_repeat': gallery.watermark_repeat,
+        'watermark_spacing': gallery.watermark_spacing,
+        'watermark_grid_angle': gallery.watermark_grid_angle,
+        'watermark_quality': gallery.watermark_quality,
+        'has_watermark_image': gallery.watermark_image_path is not None,
         'thumbnail_quality': gallery.thumbnail_quality,
         'hover_animation': gallery.hover_animation,
         'cover_image_id': gallery.cover_image_id,
@@ -256,6 +282,10 @@ def update_gallery(id):
         gallery.name = data['name']
         if 'slug' not in data:
             gallery.slug = slugify(data['name'])
+    if 'description' in data:
+        gallery.description = data['description'] or None
+    if 'photographer_instagram' in data:
+        gallery.photographer_instagram = data['photographer_instagram'] or None
     if 'slug' in data:
         new_slug = slugify(data['slug'])
         if not new_slug:
@@ -282,6 +312,26 @@ def update_gallery(id):
         gallery.watermark_opacity = data['watermark_opacity']
     if 'watermark_text' in data:
         gallery.watermark_text = data['watermark_text'] or None
+    if 'watermark_position' in data:
+        gallery.watermark_position = data['watermark_position']
+    if 'watermark_position_thumbnail' in data:
+        gallery.watermark_position_thumbnail = data['watermark_position_thumbnail']
+    if 'watermark_color' in data:
+        gallery.watermark_color = data['watermark_color']
+    if 'watermark_font' in data:
+        gallery.watermark_font = data['watermark_font']
+    if 'watermark_font_size' in data:
+        gallery.watermark_font_size = data['watermark_font_size']
+    if 'watermark_type' in data:
+        gallery.watermark_type = data['watermark_type']
+    if 'watermark_repeat' in data:
+        gallery.watermark_repeat = data['watermark_repeat']
+    if 'watermark_spacing' in data:
+        gallery.watermark_spacing = data['watermark_spacing']
+    if 'watermark_grid_angle' in data:
+        gallery.watermark_grid_angle = data['watermark_grid_angle']
+    if 'watermark_quality' in data:
+        gallery.watermark_quality = data['watermark_quality']
     if 'thumbnail_quality' in data:
         gallery.thumbnail_quality = data['thumbnail_quality']
     if 'hover_animation' in data:
@@ -294,6 +344,19 @@ def update_gallery(id):
             gallery.password_hash = bcrypt.generate_password_hash(data['password']).decode('utf-8')
         else:
             gallery.password_hash = None
+
+    watermark_fields = {'watermark_enabled', 'watermark_opacity', 'watermark_text',
+                        'watermark_position', 'watermark_position_thumbnail',
+                        'watermark_color', 'watermark_font', 'watermark_font_size',
+                        'watermark_type', 'watermark_repeat', 'watermark_spacing',
+                        'watermark_grid_angle', 'watermark_quality'}
+    if watermark_fields & data.keys():
+        gallery_dir = os.path.join(current_app.config['GALLERY_DATA_PATH'], str(gallery.id))
+        for subdir in ('watermarked', 'watermarked_thumbnails'):
+            wm_dir = os.path.join(gallery_dir, subdir)
+            if os.path.exists(wm_dir):
+                for f in os.listdir(wm_dir):
+                    os.remove(os.path.join(wm_dir, f))
 
     cache.clear()
 
@@ -318,6 +381,36 @@ def delete_gallery(id):
     cache.clear()
 
     return jsonify({'message': 'Gallery deleted successfully'}), 200
+
+
+@bp.route('/api/admin/galleries/<int:id>/clear-cache', methods=['POST'])
+@admin_required
+def clear_gallery_cache(id):
+    gallery = Gallery.query.get_or_404(id)
+    data = request.get_json() or {}
+    cache_type = data.get('type', 'all')
+
+    gallery_dir = os.path.join(current_app.config['GALLERY_DATA_PATH'], str(gallery.id))
+    cleared = []
+
+    dirs_to_clear = []
+    if cache_type in ('all', 'thumbnails'):
+        dirs_to_clear.append('thumbnails')
+    if cache_type in ('all', 'watermarks'):
+        dirs_to_clear.extend(['watermarked', 'watermarked_thumbnails'])
+
+    for subdir in dirs_to_clear:
+        d = os.path.join(gallery_dir, subdir)
+        if os.path.exists(d):
+            count = 0
+            for f in os.listdir(d):
+                os.remove(os.path.join(d, f))
+                count += 1
+            if count:
+                cleared.append(f'{subdir} ({count})')
+
+    cache.clear()
+    return jsonify({'message': f'Cleared: {", ".join(cleared) or "nothing to clear"}'}), 200
 
 
 @bp.route('/api/admin/galleries/<int:id>/access-logs', methods=['GET'])

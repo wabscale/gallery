@@ -1,6 +1,7 @@
 import os
+import tempfile
 from datetime import datetime
-from flask import Blueprint, request, jsonify, send_file, current_app, session
+from flask import Blueprint, request, jsonify, send_file, current_app, session, after_this_request
 from flask_login import current_user
 from werkzeug.utils import secure_filename
 from PIL import Image as PILImage
@@ -11,6 +12,24 @@ from app.utils.helpers import generate_unique_filename, allowed_file
 from app.services.image_processor import generate_thumbnail, generate_all_thumbnails, apply_watermark
 
 bp = Blueprint('images', __name__)
+
+
+def _watermark_kwargs(gallery, position_override=None, is_thumbnail=False):
+    return dict(
+        text=gallery.watermark_text or gallery.name,
+        opacity=gallery.watermark_opacity,
+        position=position_override or gallery.watermark_position,
+        color=gallery.watermark_color,
+        font_name=gallery.watermark_font,
+        font_size=gallery.watermark_font_size,
+        watermark_type=gallery.watermark_type,
+        watermark_image_path=gallery.watermark_image_path,
+        repeat=gallery.watermark_repeat,
+        spacing=gallery.watermark_spacing,
+        grid_angle=gallery.watermark_grid_angle,
+        quality=gallery.watermark_quality,
+        is_thumbnail=is_thumbnail,
+    )
 
 
 @bp.route('/api/admin/galleries/<int:gallery_id>/images', methods=['POST'])
@@ -49,6 +68,12 @@ def upload_image(gallery_id):
         watermarked_path = os.path.join(gallery_dir, 'watermarked', existing.filename)
         if os.path.exists(watermarked_path):
             os.remove(watermarked_path)
+        watermarked_thumbs_dir = os.path.join(gallery_dir, 'watermarked_thumbnails')
+        for wt_size in ['small', 'medium', 'large']:
+            name_wt, ext_wt = os.path.splitext(existing.filename)
+            wt_path = os.path.join(watermarked_thumbs_dir, f"{name_wt}_{wt_size}{ext_wt}")
+            if os.path.exists(wt_path):
+                os.remove(wt_path)
 
         filename = existing.filename
         file_path = os.path.join(originals_dir, filename)
@@ -140,6 +165,21 @@ def serve_thumbnail(gallery_id, image_id):
     if not os.path.exists(thumbnail_path):
         return jsonify({'error': 'Thumbnail not found'}), 404
 
+    skip_watermark = request.args.get('raw') == 'true' and current_user.is_authenticated
+    if gallery.watermark_enabled and not skip_watermark:
+        watermarked_thumbs_dir = os.path.join(
+            current_app.config['GALLERY_DATA_PATH'], str(gallery_id), 'watermarked_thumbnails')
+        os.makedirs(watermarked_thumbs_dir, exist_ok=True)
+        name, ext = os.path.splitext(image.filename)
+        watermarked_thumb_path = os.path.join(watermarked_thumbs_dir, f"{name}_{size}{ext}")
+
+        if not os.path.exists(watermarked_thumb_path):
+            apply_watermark(
+                thumbnail_path, watermarked_thumb_path,
+                **_watermark_kwargs(gallery, gallery.watermark_position_thumbnail, is_thumbnail=True)
+            )
+        thumbnail_path = watermarked_thumb_path
+
     return send_file(thumbnail_path, mimetype='image/jpeg')
 
 
@@ -157,14 +197,17 @@ def serve_full_image(gallery_id, image_id):
 
     file_path = image.file_path
 
-    if gallery.watermark_enabled and not current_user.is_authenticated:
+    skip_watermark = request.args.get('raw') == 'true' and current_user.is_authenticated
+    if gallery.watermark_enabled and not skip_watermark:
         watermarked_dir = os.path.join(current_app.config['GALLERY_DATA_PATH'], str(gallery_id), 'watermarked')
         os.makedirs(watermarked_dir, exist_ok=True)
         watermarked_path = os.path.join(watermarked_dir, image.filename)
 
         if not os.path.exists(watermarked_path):
-            watermark_text = gallery.watermark_text or gallery.name
-            apply_watermark(file_path, watermarked_path, watermark_text, gallery.watermark_opacity)
+            apply_watermark(
+                file_path, watermarked_path,
+                **_watermark_kwargs(gallery)
+            )
 
         file_path = watermarked_path
 
@@ -208,9 +251,17 @@ def delete_image(id):
         if os.path.exists(thumb_path):
             os.remove(thumb_path)
 
-    watermarked_path = os.path.join(current_app.config['GALLERY_DATA_PATH'], str(gallery_id), 'watermarked', image.filename)
+    gallery_dir = os.path.join(current_app.config['GALLERY_DATA_PATH'], str(gallery_id))
+    watermarked_path = os.path.join(gallery_dir, 'watermarked', image.filename)
     if os.path.exists(watermarked_path):
         os.remove(watermarked_path)
+
+    watermarked_thumbs_dir = os.path.join(gallery_dir, 'watermarked_thumbnails')
+    for size in ['small', 'medium', 'large']:
+        name, ext = os.path.splitext(image.filename)
+        wt_path = os.path.join(watermarked_thumbs_dir, f"{name}_{size}{ext}")
+        if os.path.exists(wt_path):
+            os.remove(wt_path)
 
     db.session.delete(image)
     db.session.commit()
@@ -228,7 +279,7 @@ def delete_all_images(gallery_id):
     images = Image.query.filter_by(gallery_id=gallery_id).all()
 
     gallery_dir = os.path.join(current_app.config['GALLERY_DATA_PATH'], str(gallery_id))
-    for subdir in ['originals', 'thumbnails', 'watermarked']:
+    for subdir in ['originals', 'thumbnails', 'watermarked', 'watermarked_thumbnails']:
         dir_path = os.path.join(gallery_dir, subdir)
         if os.path.exists(dir_path):
             for f in os.listdir(dir_path):
@@ -264,6 +315,136 @@ def regenerate_thumbnail(gallery_id, image_id):
 
     generate_all_thumbnails(image.file_path, thumbnails_dir, gallery.thumbnail_quality)
     return jsonify({'message': 'ok'}), 200
+
+
+@bp.route('/api/admin/galleries/<int:gallery_id>/regenerate-watermark/<int:image_id>', methods=['POST'])
+@admin_required
+def regenerate_watermark(gallery_id, image_id):
+    gallery = Gallery.query.get_or_404(gallery_id)
+    image = Image.query.filter_by(id=image_id, gallery_id=gallery_id).first_or_404()
+
+    if not os.path.exists(image.file_path):
+        return jsonify({'error': 'Original file missing'}), 404
+
+    gallery_dir = os.path.join(current_app.config['GALLERY_DATA_PATH'], str(gallery_id))
+
+    watermarked_dir = os.path.join(gallery_dir, 'watermarked')
+    os.makedirs(watermarked_dir, exist_ok=True)
+    watermarked_path = os.path.join(watermarked_dir, image.filename)
+    if os.path.exists(watermarked_path):
+        os.remove(watermarked_path)
+    apply_watermark(image.file_path, watermarked_path, **_watermark_kwargs(gallery))
+
+    watermarked_thumbs_dir = os.path.join(gallery_dir, 'watermarked_thumbnails')
+    os.makedirs(watermarked_thumbs_dir, exist_ok=True)
+    thumbnails_dir = os.path.join(gallery_dir, 'thumbnails')
+    for size in ['small', 'medium', 'large']:
+        name, ext = os.path.splitext(image.filename)
+        wt_path = os.path.join(watermarked_thumbs_dir, f"{name}_{size}{ext}")
+        if os.path.exists(wt_path):
+            os.remove(wt_path)
+        thumb_path = os.path.join(thumbnails_dir, f"{name}_{size}{ext}")
+        if os.path.exists(thumb_path):
+            apply_watermark(
+                thumb_path, wt_path,
+                **_watermark_kwargs(gallery, gallery.watermark_position_thumbnail, is_thumbnail=True)
+            )
+
+    return jsonify({'message': 'ok'}), 200
+
+
+ALLOWED_WATERMARK_EXTENSIONS = {'png', 'jpg', 'jpeg', 'svg'}
+
+
+@bp.route('/api/admin/galleries/<int:gallery_id>/watermark-image', methods=['POST'])
+@admin_required
+def upload_watermark_image(gallery_id):
+    gallery = Gallery.query.get_or_404(gallery_id)
+
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['file']
+    if not file.filename:
+        return jsonify({'error': 'No file selected'}), 400
+
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    if ext not in ALLOWED_WATERMARK_EXTENSIONS:
+        return jsonify({'error': 'Invalid file type. Use PNG, JPEG, or SVG'}), 400
+
+    gallery_dir = os.path.join(current_app.config['GALLERY_DATA_PATH'], str(gallery_id))
+    os.makedirs(gallery_dir, exist_ok=True)
+
+    if gallery.watermark_image_path and os.path.exists(gallery.watermark_image_path):
+        os.remove(gallery.watermark_image_path)
+
+    filename = f"watermark.{ext}"
+    file_path = os.path.join(gallery_dir, filename)
+    file.save(file_path)
+
+    gallery.watermark_image_path = file_path
+    gallery.watermark_type = 'image'
+    db.session.commit()
+
+    return jsonify({'message': 'Watermark image uploaded', 'watermark_type': 'image'}), 200
+
+
+@bp.route('/api/admin/galleries/<int:gallery_id>/watermark-image', methods=['DELETE'])
+@admin_required
+def delete_watermark_image(gallery_id):
+    gallery = Gallery.query.get_or_404(gallery_id)
+
+    if gallery.watermark_image_path and os.path.exists(gallery.watermark_image_path):
+        os.remove(gallery.watermark_image_path)
+
+    gallery.watermark_image_path = None
+    gallery.watermark_type = 'text'
+    db.session.commit()
+
+    return jsonify({'message': 'Watermark image removed', 'watermark_type': 'text'}), 200
+
+
+@bp.route('/api/admin/galleries/<int:gallery_id>/watermark-preview/<int:image_id>', methods=['GET'])
+@admin_required
+def watermark_preview(gallery_id, image_id):
+    gallery = Gallery.query.get_or_404(gallery_id)
+    image = Image.query.filter_by(id=image_id, gallery_id=gallery_id).first_or_404()
+
+    if not os.path.exists(image.file_path):
+        return jsonify({'error': 'Original file missing'}), 404
+
+    thumbnails_dir = os.path.join(current_app.config['GALLERY_DATA_PATH'], str(gallery_id), 'thumbnails')
+    thumb_path = generate_thumbnail(image.file_path, thumbnails_dir, 'large', gallery.thumbnail_quality)
+
+    kwargs = dict(
+        text=request.args.get('text') or gallery.watermark_text or gallery.name,
+        opacity=request.args.get('opacity', gallery.watermark_opacity, type=int),
+        position=request.args.get('position') or gallery.watermark_position,
+        color=request.args.get('color') or gallery.watermark_color,
+        font_name=request.args.get('font') or gallery.watermark_font,
+        font_size=request.args.get('font_size', gallery.watermark_font_size, type=int),
+        watermark_type=request.args.get('type') or gallery.watermark_type,
+        watermark_image_path=gallery.watermark_image_path,
+        repeat=request.args.get('repeat') or gallery.watermark_repeat,
+        spacing=request.args.get('spacing', gallery.watermark_spacing, type=int),
+        grid_angle=request.args.get('grid_angle', gallery.watermark_grid_angle, type=int),
+        quality=request.args.get('quality', gallery.watermark_quality, type=int),
+    )
+
+    fd, preview_path = tempfile.mkstemp(suffix='.jpg')
+    os.close(fd)
+
+    apply_watermark(thumb_path, preview_path, **kwargs)
+
+    @after_this_request
+    def cleanup(response):
+        try:
+            os.unlink(preview_path)
+        except OSError:
+            pass
+        return response
+
+    return send_file(preview_path, mimetype='image/jpeg')
 
 
 @bp.route('/api/admin/images/<int:id>/visibility', methods=['PUT'])

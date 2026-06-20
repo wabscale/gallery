@@ -23,7 +23,7 @@ def request_zip_download(slug):
     if not gallery.allow_download and not current_user.is_authenticated:
         return jsonify({'error': 'Downloads not allowed for this gallery'}), 403
 
-    images = gallery.images.order_by(Image.order).all()
+    images = gallery.images.filter_by(is_hidden=False).order_by(Image.order).all()
     if not images:
         return jsonify({'error': 'No images in gallery'}), 404
 

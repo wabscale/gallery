@@ -12,6 +12,8 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import GalleryManager from './components/admin/GalleryManager';
 import GalleryDetails from './components/admin/GalleryDetails';
 import SiteSettings from './components/admin/SiteSettings';
+import UserManager from './components/admin/UserManager';
+import AdminLayout from './components/admin/AdminLayout';
 
 const ThemeContext = createContext(null);
 
@@ -99,10 +101,11 @@ function App() {
             <Route path="/gallery/:slug" element={<PublicLayout><GalleryGrid /></PublicLayout>} />
 
             <Route path="/admin/login" element={<Login />} />
-            <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-            <Route path="/admin/galleries" element={<ProtectedRoute><GalleryManager /></ProtectedRoute>} />
-            <Route path="/admin/galleries/:id" element={<ProtectedRoute><GalleryDetails /></ProtectedRoute>} />
-            <Route path="/admin/settings" element={<ProtectedRoute><SiteSettings /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/galleries" element={<ProtectedRoute><AdminLayout><GalleryManager /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/galleries/:id" element={<ProtectedRoute><AdminLayout><GalleryDetails /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/settings" element={<ProtectedRoute><AdminLayout><SiteSettings /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute><AdminLayout><UserManager /></AdminLayout></ProtectedRoute>} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

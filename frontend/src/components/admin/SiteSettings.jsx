@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
 import {
   Container, Typography, Paper, TextField, Button, Box, Alert, Grid,
   FormControl, InputLabel, Select, MenuItem
@@ -9,7 +8,6 @@ import { siteSettingsAPI } from '../../services/api';
 import { useSiteSettings } from '../../hooks/useSiteSettings';
 
 const SiteSettings = () => {
-  const navigate = useNavigate();
   const { refresh: refreshGlobalSettings } = useSiteSettings();
   const [settings, setSettings] = useState({ site_title: '', site_heading: '', gallery_card_aspect_ratio: '4x5' });
   const [hasFavicon, setHasFavicon] = useState(false);
@@ -82,10 +80,7 @@ const SiteSettings = () => {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4">Site Settings</Typography>
-        <Button onClick={() => navigate('/admin')}>Back to Dashboard</Button>
-      </Box>
+      <Typography variant="h4" mb={4}>Site Settings</Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}

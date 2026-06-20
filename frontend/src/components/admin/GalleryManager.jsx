@@ -5,6 +5,7 @@ import { Add } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
 import { galleriesAPI } from '../../services/api';
 
+
 const GalleryManager = () => {
   const navigate = useNavigate();
   const [galleries, setGalleries] = useState([]);
@@ -78,13 +79,10 @@ const GalleryManager = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4">Gallery Manager</Typography>
-        <Box>
-          <Button variant="contained" startIcon={<Add />} onClick={() => setCreateDialogOpen(true)} sx={{ mr: 1 }}>
-            New Gallery
-          </Button>
-          <Button onClick={() => navigate('/admin')}>Back to Dashboard</Button>
-        </Box>
+        <Typography variant="h4">Galleries</Typography>
+        <Button variant="contained" startIcon={<Add />} onClick={() => setCreateDialogOpen(true)}>
+          New Gallery
+        </Button>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}

@@ -82,7 +82,12 @@ export const downloadsAPI = {
 
 export const adminAPI = {
   getMetrics: () => api.get('/auth/admin/metrics'),
-  getAuditLogs: (page = 1, perPage = 50) => api.get('/auth/admin/audit-logs', { params: { page, per_page: perPage } })
+  getActivity: (days = 30) => api.get('/auth/admin/activity', { params: { days } }),
+  getAuditLogs: (page = 1, perPage = 50) => api.get('/auth/admin/audit-logs', { params: { page, per_page: perPage } }),
+  listUsers: () => api.get('/auth/admin/users'),
+  createUser: (data) => api.post('/auth/admin/users', data),
+  updateUser: (id, data) => api.put(`/auth/admin/users/${id}`, data),
+  deleteUser: (id) => api.delete(`/auth/admin/users/${id}`),
 };
 
 export const siteSettingsAPI = {

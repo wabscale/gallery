@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams } from 'react-router';
 import {
   Container, Typography, Paper, Grid, TextField, FormControlLabel,
   Switch, Button, Box, Alert, FormControl, InputLabel, Slider, Divider,
@@ -38,7 +38,6 @@ const DebouncedTextField = memo(({ value: externalValue, onChange, ...props }) =
 
 const GalleryDetails = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [gallery, setGallery] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -158,12 +157,7 @@ const GalleryDetails = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4">Edit Gallery</Typography>
-        <Button onClick={() => navigate('/admin/galleries')}>
-          Back to Galleries
-        </Button>
-      </Box>
+      <Typography variant="h4" mb={4}>Edit Gallery</Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Snackbar

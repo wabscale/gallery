@@ -1,0 +1,22 @@
+frontend/src/components/gallery/PasswordPrompt.jsx
+  s_1708c2a7f98fd2::t_c163ff761962e2 35
+frontend/src/components/gallery/GalleryGrid.jsx
+  s_1708c2a7f98fd2::t_2b4b2efc7399ed 187,190-215
+  s_1708c2a7f98fd2::t_a78a3899897e5b 11-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "03846b4eaa963122177fd0dbcc92ed3963c00907",
+  "prompts": {},
+  "sessions": {
+    "s_1708c2a7f98fd2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1e055299-0ffa-4f9a-80f9-00c171919bce",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "John McCann Cunniff Jr <johncunniff1248@gmail.com>"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+backend/app/services/image_processor.py
+  s_1708c2a7f98fd2::t_927f371c8ec445 157-158,162,164,173-175,177
+  s_1708c2a7f98fd2::t_0d37108cbc1017 152,159-161,163,165-172,176,178-186
+  s_1708c2a7f98fd2::t_033b0df872eaeb 228-229
+  s_1708c2a7f98fd2::t_347ff204fb33be 203,213-214,224-227
+  s_1708c2a7f98fd2::t_8bf59ed77d5d0b 208-210
+  s_1708c2a7f98fd2::t_6977d39342fcc2 237
+  s_1708c2a7f98fd2::t_7161047f9dc785 251
+  s_1708c2a7f98fd2::t_9ae93961e2f506 202
+  s_1708c2a7f98fd2::t_1e3c918730ec64 211-212,215-221
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "09aba877752611dd5140484aa3265f0a191a018a",
+  "prompts": {},
+  "sessions": {
+    "s_1708c2a7f98fd2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1e055299-0ffa-4f9a-80f9-00c171919bce",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "John McCann Cunniff Jr <johncunniff1248@gmail.com>"
+    }
+  }
+}

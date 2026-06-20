@@ -8,6 +8,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libjpeg-dev \
     zlib1g-dev \
+    libcairo2 \
+    libgdk-pixbuf-2.0-0 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    shared-mime-info \
+    fonts-dejavu-core \
+    fonts-liberation \
+    fonts-montserrat \
+    fonts-open-sans \
+    fonts-lato \
+    fonts-roboto-unhinted \
+    fonts-beteckna \
     && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -g 1000 app && \

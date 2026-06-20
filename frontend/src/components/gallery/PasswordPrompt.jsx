@@ -32,6 +32,7 @@ const PasswordPrompt = ({ open, onClose, slug, onSuccess }) => {
           <TextField
             autoFocus
             fullWidth
+            margin="dense"
             type="password"
             label="Password"
             value={password}

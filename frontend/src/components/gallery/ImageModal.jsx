@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Dialog, IconButton, Box, CircularProgress } from '@mui/material';
+import { Dialog, IconButton, Box, CircularProgress, Typography } from '@mui/material';
 import { Close, ArrowBack, ArrowForward, Download } from '@mui/icons-material';
 
-const ImageModal = ({ open, onClose, image, galleryId, onNext, onPrevious, allowDownload }) => {
+const ImageModal = ({ open, onClose, image, galleryId, onNext, onPrevious, allowDownload, thumbnailOnly }) => {
   const [loading, setLoading] = useState(true);
 
   const imageId = image?.id;
@@ -12,7 +12,9 @@ const ImageModal = ({ open, onClose, image, galleryId, onNext, onPrevious, allow
 
   if (!image) return null;
 
-  const fullImageUrl = `/images/full/${galleryId}/${image.id}`;
+  const imageUrl = thumbnailOnly
+    ? `/images/thumbnails/${galleryId}/${image.id}?size=large`
+    : `/images/full/${galleryId}/${image.id}`;
 
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') onClose();
@@ -63,7 +65,7 @@ const ImageModal = ({ open, onClose, image, galleryId, onNext, onPrevious, allow
         {allowDownload && (
           <IconButton
             component="a"
-            href={fullImageUrl}
+            href={`/images/full/${galleryId}/${image.id}`}
             download={image.original_filename}
             sx={{ position: 'absolute', bottom: 8, right: 8, color: 'white', zIndex: 1 }}
           >
@@ -71,13 +73,30 @@ const ImageModal = ({ open, onClose, image, galleryId, onNext, onPrevious, allow
           </IconButton>
         )}
 
+        <Typography
+          variant="body2"
+          sx={{
+            position: 'absolute',
+            bottom: 8,
+            left: 8,
+            color: 'white',
+            bgcolor: 'rgba(0, 0, 0, 0.6)',
+            px: 1.5,
+            py: 0.5,
+            borderRadius: 1,
+            zIndex: 1
+          }}
+        >
+          {image.original_filename}
+        </Typography>
+
         {loading && (
           <CircularProgress
             sx={{ color: 'rgba(255, 255, 255, 0.7)', position: 'absolute' }}
           />
         )}
         <img
-          src={fullImageUrl}
+          src={imageUrl}
           alt={image.original_filename}
           onLoad={() => setLoading(false)}
           style={{

@@ -70,6 +70,7 @@ const GalleryGrid = () => {
     } catch (err) {
       if (err.response?.data?.requires_password) {
         setRequiresPassword(true);
+        setGalleryName(err.response?.data?.gallery_name || '');
       } else if (err.response?.data?.requires_email) {
         setRequiresEmail(true);
         setGalleryName(err.response?.data?.gallery_name || '');
@@ -155,6 +156,7 @@ const GalleryGrid = () => {
         open={requiresPassword}
         onClose={() => window.location.href = '/'}
         slug={slug}
+        galleryName={galleryName}
         onSuccess={loadGallery}
       />
     );

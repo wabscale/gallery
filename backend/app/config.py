@@ -42,7 +42,9 @@ class Config:
         'image/svg+xml',
     ]
     COMPRESS_ALGORITHM = ['br', 'gzip', 'deflate']
-    COMPRESS_MIN_SIZE = 256
+    COMPRESS_MIN_SIZE = 500
+    COMPRESS_LEVEL = 6
+    COMPRESS_BR_LEVEL = 4
 
 
 class DevelopmentConfig(Config):

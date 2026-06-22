@@ -249,6 +249,7 @@ const GalleryGrid = () => {
         onNext={selectedIndex < gallery.images.length - 1 ? handleNext : null}
         onPrevious={selectedIndex > 0 ? handlePrevious : null}
         allowDownload={gallery?.allow_download && !gallery?.thumbnail_only}
+        thumbnailOnly={gallery?.thumbnail_only}
       />
     </Container>
   );

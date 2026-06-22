@@ -245,6 +245,7 @@ const RegenerateThumbnails = ({ galleryId, images }) => {
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, failed: 0 });
   const [eta, setEta] = useState(null);
+  const [useParallel, setUseParallel] = useState(true);
   const startTimeRef = useRef(null);
 
   const start = async () => {
@@ -276,7 +277,8 @@ const RegenerateThumbnails = ({ galleryId, images }) => {
       }
     };
 
-    const workers = Array.from({ length: Math.min(CONCURRENT_REGEN, total) }, () => processOne());
+    const workerCount = useParallel ? Math.min(CONCURRENT_REGEN, total) : 1;
+    const workers = Array.from({ length: workerCount }, () => processOne());
     await Promise.all(workers);
 
     setRunning(false);
@@ -299,9 +301,24 @@ const RegenerateThumbnails = ({ galleryId, images }) => {
         <DialogTitle>Regenerate Thumbnails</DialogTitle>
         <DialogContent>
           {!running && progress.done === 0 && (
-            <Typography>
-              This will regenerate thumbnails for all {images.length} images. Existing thumbnails will be replaced.
-            </Typography>
+            <>
+              <Typography>
+                This will regenerate thumbnails for all {images.length} images. Existing thumbnails will be replaced.
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={useParallel}
+                    onChange={(e) => setUseParallel(e.target.checked)}
+                  />
+                }
+                label="Use parallel processing"
+                sx={{ mt: 2 }}
+              />
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5, ml: 4 }}>
+                Disable for dense images (40MP+) to reduce memory usage
+              </Typography>
+            </>
           )}
           {running && (
             <Typography variant="caption" color="warning.main" sx={{ mt: 1, display: 'block' }}>
@@ -960,6 +977,7 @@ const RegenerateWatermarks = ({ galleryId, images }) => {
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, failed: 0 });
   const [eta, setEta] = useState(null);
+  const [useParallel, setUseParallel] = useState(true);
   const startTimeRef = useRef(null);
 
   const start = async () => {
@@ -991,7 +1009,8 @@ const RegenerateWatermarks = ({ galleryId, images }) => {
       }
     };
 
-    const workers = Array.from({ length: Math.min(CONCURRENT_REGEN, total) }, () => processOne());
+    const workerCount = useParallel ? Math.min(CONCURRENT_REGEN, total) : 1;
+    const workers = Array.from({ length: workerCount }, () => processOne());
     await Promise.all(workers);
 
     setRunning(false);
@@ -1014,9 +1033,24 @@ const RegenerateWatermarks = ({ galleryId, images }) => {
         <DialogTitle>Regenerate Watermarks</DialogTitle>
         <DialogContent>
           {!running && progress.done === 0 && (
-            <Typography>
-              This will regenerate watermarked versions for all {images.length} images using current settings. Existing watermarked files will be replaced.
-            </Typography>
+            <>
+              <Typography>
+                This will regenerate watermarked versions for all {images.length} images using current settings. Existing watermarked files will be replaced.
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={useParallel}
+                    onChange={(e) => setUseParallel(e.target.checked)}
+                  />
+                }
+                label="Use parallel processing"
+                sx={{ mt: 2 }}
+              />
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5, ml: 4 }}>
+                Disable for dense images (40MP+) to reduce memory usage
+              </Typography>
+            </>
           )}
           {running && (
             <Typography variant="caption" color="warning.main" sx={{ mt: 1, display: 'block' }}>

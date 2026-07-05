@@ -5,6 +5,7 @@ from flask_bcrypt import Bcrypt
 from flask_compress import Compress
 from flask_caching import Cache
 from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app.config import config
 from app.models import db, Admin
@@ -21,6 +22,16 @@ def create_app(config_name=None):
 
     app = Flask(__name__)
     app.config.from_object(config[config_name])
+
+    # Behind Traefik (or any reverse proxy) the socket peer is the proxy, so
+    # request.remote_addr would be the proxy IP. Trust the X-Forwarded-* headers
+    # for the configured number of proxy hops so remote_addr is the real client.
+    proxy_hops = app.config['PROXY_FIX_HOPS']
+    if proxy_hops:
+        app.wsgi_app = ProxyFix(
+            app.wsgi_app, x_for=proxy_hops, x_proto=proxy_hops,
+            x_host=proxy_hops, x_port=proxy_hops
+        )
 
     db.init_app(app)
     login_manager.init_app(app)

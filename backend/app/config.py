@@ -32,6 +32,12 @@ class Config:
 
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*').split(',')
 
+    # Number of trusted reverse proxies (e.g. Traefik) in front of the app.
+    # Controls how many values ProxyFix trusts from X-Forwarded-* headers so
+    # that request.remote_addr resolves to the real client IP. Set to match
+    # your deployment; 0 disables proxy header trust.
+    PROXY_FIX_HOPS = int(os.environ.get('PROXY_FIX_HOPS', 1))
+
     COMPRESS_MIMETYPES = [
         'text/html',
         'text/css',

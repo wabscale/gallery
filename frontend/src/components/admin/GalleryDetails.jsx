@@ -8,7 +8,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, LinearProgress
 } from '@mui/material';
 import {
-  Delete, DeleteForever, Visibility, VisibilityOff, PhotoCamera, Download, Refresh, Settings
+  Delete, DeleteForever, Visibility, VisibilityOff, PhotoCamera, Download, Refresh, Settings, ContentCopy
 } from '@mui/icons-material';
 import { galleriesAPI, imagesAPI } from '../../services/api';
 import ImageUploader from './ImageUploader';
@@ -76,10 +76,13 @@ const GalleryDetails = () => {
     try {
       await galleriesAPI.update(id, changes);
       setSuccess('Saved');
+      if ('image_sort' in changes) {
+        await refreshGallery();
+      }
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save');
     }
-  }, [id]);
+  }, [id, refreshGallery]);
 
   const handleChange = useCallback((field, value) => {
     setGallery(prev => ({ ...prev, [field]: value }));
@@ -92,6 +95,12 @@ const GalleryDetails = () => {
       saveChanges(changes);
     }, 800);
   }, [saveChanges]);
+
+  const handleCopyLink = useCallback(async () => {
+    const url = `${window.location.origin}/gallery/${gallery.slug}`;
+    await navigator.clipboard.writeText(url);
+    setSuccess('Link copied');
+  }, [gallery]);
 
   useEffect(() => {
     return () => {
@@ -175,6 +184,7 @@ const GalleryDetails = () => {
             <GallerySettingsForm
               gallery={gallery}
               onChange={handleChange}
+              onCopyLink={handleCopyLink}
             />
           </Paper>
         </Grid>
@@ -427,7 +437,7 @@ const SectionLabel = ({ children }) => (
   </Typography>
 );
 
-const GallerySettingsForm = memo(({ gallery, onChange }) => {
+const GallerySettingsForm = memo(({ gallery, onChange, onCopyLink }) => {
   const [watermarkOpen, setWatermarkOpen] = useState(false);
 
   return (
@@ -471,6 +481,14 @@ const GallerySettingsForm = memo(({ gallery, onChange }) => {
         size="small"
         helperText="URL path for this gallery"
       />
+      <Button
+        size="small"
+        startIcon={<ContentCopy />}
+        onClick={onCopyLink}
+        sx={{ mt: 0.5 }}
+      >
+        Copy gallery link
+      </Button>
 
       {/* Access & Privacy */}
       <SectionLabel>Access</SectionLabel>

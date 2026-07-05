@@ -21,7 +21,10 @@ def apply_image_sort(query, sort_setting):
         'upload_desc': Image.uploaded_at.desc(),
     }
     order = sort_map.get(sort_setting, Image.order.asc())
-    return query.order_by(order)
+    # The Gallery.images relationship declares order_by='Image.order', which
+    # SQLAlchemy would otherwise keep as the primary sort and append ours as a
+    # tiebreaker. Reset it first so the requested sort actually takes effect.
+    return query.order_by(None).order_by(order)
 
 
 @bp.route('/api/galleries', methods=['GET'])

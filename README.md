@@ -89,6 +89,7 @@ Using the `justfile`:
 - `just test` - Run backend tests
 - `just create-admin <username> <email> <password>` - Create admin account
 - `just backup` - Backup database and files
+- `just restore <sql> <tarball>` - Restore database and files from a backup
 - `just clean` - Remove all containers and volumes
 - `just rebuild` - Rebuild containers from scratch
 
@@ -158,7 +159,12 @@ just backup
 
 This creates:
 - `backups/backup-YYYYMMDD-HHMMSS.sql` - Database dump
-- `backups/backup-YYYYMMDD-HHMMSS.tar.gz` - Gallery files
+- `backups/backup-YYYYMMDD-HHMMSS.tar.gz` - Gallery files (read from the backend's `/app/data` volume)
+
+Restore from a backup:
+```bash
+just restore backups/backup-YYYYMMDD-HHMMSS.sql backups/backup-YYYYMMDD-HHMMSS.tar.gz
+```
 
 ## API Documentation
 

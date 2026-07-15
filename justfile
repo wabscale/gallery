@@ -34,9 +34,18 @@ backup:
     TIMESTAMP=$(date +%Y%m%d-%H%M%S)
     echo "Creating backup at ${TIMESTAMP}..."
     mkdir -p backups
-    docker compose exec mariadb mysqldump -u root -p${MARIADB_ROOT_PASSWORD} ${MARIADB_DATABASE} > backups/backup-${TIMESTAMP}.sql
-    tar -I pigz -cf backups/backup-${TIMESTAMP}.tar.gz data/
+    docker compose exec -T mariadb mysqldump -u root -p${MARIADB_ROOT_PASSWORD} ${MARIADB_DATABASE} > backups/backup-${TIMESTAMP}.sql
+    docker compose exec -T backend tar -I pigz -cf - -C /app/data . > backups/backup-${TIMESTAMP}.tar.gz
     echo "Backup complete: backups/backup-${TIMESTAMP}.{sql,tar.gz}"
+
+restore sql tarball:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Restoring database from {{sql}}..."
+    docker compose exec -T mariadb mysql -u root -p${MARIADB_ROOT_PASSWORD} ${MARIADB_DATABASE} < {{sql}}
+    echo "Restoring gallery files from {{tarball}}..."
+    docker compose exec -T backend tar -I pigz -xf - -C /app/data < {{tarball}}
+    echo "Restore complete."
 
 shell-backend:
     docker compose exec backend /bin/bash
@@ -46,7 +55,7 @@ shell-db:
 
 clean:
     docker compose down -v
-    rm -rf data/ backups/
+    rm -rf backups/
 
 rebuild:
     docker compose down

@@ -1,3 +1,4 @@
+import logging
 import os
 from flask import Flask
 from flask_login import LoginManager
@@ -16,12 +17,30 @@ compress = Compress()
 cache = Cache()
 
 
+def _configure_logging(app):
+    # Route app logs (including tracebacks) to the container's stdout/stderr.
+    # Under gunicorn, reuse its error-log handlers so everything lands in one
+    # stream; otherwise attach a plain StreamHandler for CLI/test runs.
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    if gunicorn_logger.handlers:
+        app.logger.handlers = gunicorn_logger.handlers
+        app.logger.setLevel(gunicorn_logger.level)
+    else:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter(
+            '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'))
+        app.logger.addHandler(handler)
+        app.logger.setLevel(logging.INFO)
+
+
 def create_app(config_name=None):
     if config_name is None:
         config_name = os.environ.get('FLASK_ENV', 'production')
 
     app = Flask(__name__)
     app.config.from_object(config[config_name])
+
+    _configure_logging(app)
 
     # Behind Traefik (or any reverse proxy) the socket peer is the proxy, so
     # request.remote_addr would be the proxy IP. Trust the X-Forwarded-* headers

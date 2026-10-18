@@ -8,7 +8,8 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, LinearProgress
 } from '@mui/material';
 import {
-  Delete, DeleteForever, Visibility, VisibilityOff, PhotoCamera, Download, Refresh, Settings, ContentCopy
+  Delete, DeleteForever, Visibility, VisibilityOff, PhotoCamera, Download, Refresh, Settings, ContentCopy,
+  Add, Close
 } from '@mui/icons-material';
 import { galleriesAPI, imagesAPI } from '../../services/api';
 import ImageUploader from './ImageUploader';
@@ -437,6 +438,73 @@ const SectionLabel = ({ children }) => (
   </Typography>
 );
 
+const ROLE_SUGGESTIONS = [
+  'Photographer', 'Director', 'Model', 'Stylist', 'Makeup Artist', 'Hair Stylist',
+  'Videographer', 'Creative Director', 'Assistant', 'Editor', 'Retoucher', 'Producer'
+];
+
+const CreditsEditor = ({ credits, onChange }) => {
+  // Debounced fields fire after a delay, so read the latest list from a ref
+  // rather than the render-time closure to avoid dropping a sibling edit.
+  const creditsRef = useRef(credits);
+  creditsRef.current = credits;
+
+  const commit = (next) => {
+    creditsRef.current = next;
+    onChange(next);
+  };
+
+  const updateCredit = (index, field, value) => {
+    commit(creditsRef.current.map((c, i) => (i === index ? { ...c, [field]: value } : c)));
+  };
+
+  const addCredit = () => {
+    const role = creditsRef.current.length === 0 ? 'Photographer' : '';
+    commit([...creditsRef.current, { role, instagram: '' }]);
+  };
+
+  const removeCredit = (index) => {
+    commit(creditsRef.current.filter((_, i) => i !== index));
+  };
+
+  return (
+    <Box sx={{ mt: 1 }}>
+      <datalist id="credit-role-suggestions">
+        {ROLE_SUGGESTIONS.map((r) => <option key={r} value={r} />)}
+      </datalist>
+      {credits.map((credit, index) => (
+        <Box key={index} display="flex" gap={1} alignItems="center">
+          <DebouncedTextField
+            label="Role"
+            value={credit.role || ''}
+            onChange={(v) => updateCredit(index, 'role', v)}
+            margin="dense"
+            size="small"
+            placeholder="Photographer"
+            slotProps={{ htmlInput: { list: 'credit-role-suggestions' } }}
+            sx={{ flex: 1 }}
+          />
+          <DebouncedTextField
+            label="Instagram"
+            value={credit.instagram || ''}
+            onChange={(v) => updateCredit(index, 'instagram', v)}
+            margin="dense"
+            size="small"
+            placeholder="username (without @)"
+            sx={{ flex: 1 }}
+          />
+          <IconButton size="small" onClick={() => removeCredit(index)} aria-label="Remove credit">
+            <Close fontSize="small" />
+          </IconButton>
+        </Box>
+      ))}
+      <Button size="small" startIcon={<Add />} onClick={addCredit}>
+        Add credit
+      </Button>
+    </Box>
+  );
+};
+
 const GallerySettingsForm = memo(({ gallery, onChange, onCopyLink }) => {
   const [watermarkOpen, setWatermarkOpen] = useState(false);
 
@@ -463,15 +531,7 @@ const GallerySettingsForm = memo(({ gallery, onChange, onCopyLink }) => {
         maxRows={5}
         placeholder="Caption displayed below the gallery title"
       />
-      <DebouncedTextField
-        fullWidth
-        label="Photographer Instagram"
-        value={gallery.photographer_instagram || ''}
-        onChange={(v) => onChange('photographer_instagram', v)}
-        margin="dense"
-        size="small"
-        placeholder="username (without @)"
-      />
+      <CreditsEditor credits={gallery.credits || []} onChange={(v) => onChange('credits', v)} />
       <DebouncedTextField
         fullWidth
         label="Slug"

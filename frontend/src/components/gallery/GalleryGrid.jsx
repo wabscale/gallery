@@ -194,26 +194,26 @@ const GalleryGrid = () => {
               {gallery.description}
             </Typography>
           )}
-          <Box display="flex" alignItems="center" gap={1} sx={{ mt: 0.5 }}>
+          <Box display="flex" alignItems="center" flexWrap="wrap" gap={1} sx={{ mt: 0.5 }}>
             <Typography variant="body2" color="text.secondary">
               {gallery.image_count} {gallery.image_count === 1 ? 'photo' : 'photos'}
             </Typography>
-            {gallery.photographer_instagram && (
-              <>
+            {(gallery.credits || []).map((credit) => (
+              <Box key={credit.id} display="flex" alignItems="center" gap={1}>
                 <Typography variant="body2" color="text.secondary">|</Typography>
                 <a
-                  href={`https://instagram.com/${gallery.photographer_instagram}`}
+                  href={`https://instagram.com/${credit.instagram}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
                 >
                   <InstagramIcon size={16} />
                   <Typography variant="body2" color="text.secondary">
-                    @{gallery.photographer_instagram}
+                    {credit.role} @{credit.instagram}
                   </Typography>
                 </a>
-              </>
-            )}
+              </Box>
+            ))}
           </Box>
         </Box>
         {gallery.allow_download && (

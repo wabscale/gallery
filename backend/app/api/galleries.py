@@ -3,7 +3,7 @@ import shutil
 from flask import Blueprint, request, jsonify, session, make_response
 from flask_login import current_user
 from app import bcrypt, cache
-from app.models import db, Gallery, Image, GalleryAccessLog
+from app.models import db, Gallery, GalleryCredit, Image, GalleryAccessLog
 from app.utils.decorators import admin_required, audit_log
 from app.utils.helpers import slugify
 from flask import current_app
@@ -25,6 +25,26 @@ def apply_image_sort(query, sort_setting):
     # SQLAlchemy would otherwise keep as the primary sort and append ours as a
     # tiebreaker. Reset it first so the requested sort actually takes effect.
     return query.order_by(None).order_by(order)
+
+
+def serialize_credits(gallery, require_instagram=False):
+    return [{
+        'id': c.id,
+        'role': c.role,
+        'instagram': c.instagram,
+    } for c in gallery.credits if c.instagram or not require_instagram]
+
+
+def set_credits(gallery, credits):
+    # Replace the gallery's credits with the submitted list, preserving order.
+    gallery.credits = [
+        GalleryCredit(
+            role=(c.get('role') or '').strip() or GalleryCredit.DEFAULT_ROLE,
+            instagram=(c.get('instagram') or '').strip().lstrip('@') or None,
+            order=i,
+        )
+        for i, c in enumerate(credits)
+    ]
 
 
 @bp.route('/api/galleries', methods=['GET'])
@@ -68,7 +88,7 @@ def get_gallery_by_slug(slug):
         'id': gallery.id,
         'name': gallery.name,
         'description': gallery.description,
-        'photographer_instagram': gallery.photographer_instagram,
+        'credits': serialize_credits(gallery, require_instagram=True),
         'slug': gallery.slug,
         'is_public': gallery.is_public,
         'allow_download': gallery.allow_download,
@@ -180,7 +200,6 @@ def create_gallery():
     gallery = Gallery(
         name=name,
         description=data.get('description'),
-        photographer_instagram=data.get('photographer_instagram'),
         slug=slug,
         is_public=data.get('is_public', True),
         allow_download=data.get('allow_download', True),
@@ -208,6 +227,8 @@ def create_gallery():
     if data.get('password'):
         gallery.password_hash = bcrypt.generate_password_hash(data['password']).decode('utf-8')
 
+    set_credits(gallery, data.get('credits') or [{'role': GalleryCredit.DEFAULT_ROLE}])
+
     db.session.add(gallery)
     db.session.commit()
 
@@ -233,7 +254,7 @@ def get_gallery(id):
         'id': gallery.id,
         'name': gallery.name,
         'description': gallery.description,
-        'photographer_instagram': gallery.photographer_instagram,
+        'credits': serialize_credits(gallery),
         'slug': gallery.slug,
         'is_public': gallery.is_public,
         'allow_download': gallery.allow_download,
@@ -287,8 +308,8 @@ def update_gallery(id):
             gallery.slug = slugify(data['name'])
     if 'description' in data:
         gallery.description = data['description'] or None
-    if 'photographer_instagram' in data:
-        gallery.photographer_instagram = data['photographer_instagram'] or None
+    if 'credits' in data:
+        set_credits(gallery, data['credits'])
     if 'slug' in data:
         new_slug = slugify(data['slug'])
         if not new_slug:

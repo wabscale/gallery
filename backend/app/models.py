@@ -28,7 +28,6 @@ class Gallery(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    photographer_instagram = db.Column(db.String(100), nullable=True)
     slug = db.Column(db.String(200), unique=True, nullable=False, index=True)
     is_public = db.Column(db.Boolean, default=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=True)
@@ -60,6 +59,7 @@ class Gallery(db.Model):
 
     images = db.relationship('Image', backref='gallery', lazy='dynamic', cascade='all, delete-orphan', order_by='Image.order')
     access_logs = db.relationship('GalleryAccessLog', backref='gallery', lazy='dynamic', cascade='all, delete-orphan')
+    credits = db.relationship('GalleryCredit', backref='gallery', cascade='all, delete-orphan', order_by='GalleryCredit.order')
 
     def __repr__(self):
         return f'<Gallery {self.name}>'
@@ -67,6 +67,21 @@ class Gallery(db.Model):
     @property
     def image_count(self):
         return self.images.count()
+
+
+class GalleryCredit(db.Model):
+    __tablename__ = 'gallery_credits'
+
+    DEFAULT_ROLE = 'Photographer'
+
+    id = db.Column(db.Integer, primary_key=True)
+    gallery_id = db.Column(db.Integer, db.ForeignKey('galleries.id'), nullable=False, index=True)
+    role = db.Column(db.String(100), nullable=False, default=DEFAULT_ROLE)
+    instagram = db.Column(db.String(100), nullable=True)
+    order = db.Column(db.Integer, default=0, nullable=False)
+
+    def __repr__(self):
+        return f'<GalleryCredit {self.role} @{self.instagram}>'
 
 
 class Image(db.Model):

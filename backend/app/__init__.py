@@ -73,6 +73,9 @@ def create_app(config_name=None):
 
         db.create_all()
 
+        from app.migrations import migrate_photographer_instagram
+        migrate_photographer_instagram()
+
         from app.api import galleries, images, admin, downloads, site_settings
         app.register_blueprint(galleries.bp)
         app.register_blueprint(images.bp)

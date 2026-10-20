@@ -1,15 +1,18 @@
+import { useCallback } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router';
 import { Container, Alert, Snackbar, Tabs, Tab, Box, Skeleton, Button } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { PhotoLibrary, Tune, BrandingWatermark, SearchOff, ArrowBack } from '@mui/icons-material';
+import { PhotoLibrary, Tune, BrandingWatermark, Insights, SearchOff, ArrowBack } from '@mui/icons-material';
 import { ListShell, EmptyState } from './common/DataList';
 import { useGalleryEditor } from './details/useGalleryEditor';
 import DetailsHeader from './details/DetailsHeader';
 import PhotosPanel from './details/PhotosPanel';
 import SettingsPanel from './details/SettingsPanel';
 import WatermarkPanel from './details/WatermarkPanel';
+import ActivityPanel from './activity/ActivityPanel';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
-const TABS = ['photos', 'settings', 'watermark'];
+const TABS = ['photos', 'settings', 'watermark', 'activity'];
 
 const CountPill = ({ value }) => (
   <Box
@@ -50,20 +53,31 @@ const tabSx = {
   minHeight: 44,
   borderBottom: '1px solid',
   borderColor: 'divider',
-  '& .MuiTab-root': { minHeight: 44, textTransform: 'none', fontWeight: 600, fontSize: '0.9rem', px: { xs: 1, sm: 2.5 } },
+  '& .MuiTab-root': {
+    minHeight: 44, minWidth: { xs: 0, sm: 90 }, textTransform: 'none', fontWeight: 600,
+    fontSize: '0.9rem', px: { xs: 1.5, sm: 2.5 },
+  },
   '& .MuiTab-iconWrapper': { display: { xs: 'none', sm: 'inline-flex' }, fontSize: 20 },
   '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0', boxShadow: (theme) => `0 0 8px ${theme.palette.primary.main}` },
 };
 
-const EditorTabs = ({ tab, onTab, gallery }) => (
-  <Tabs value={tab} onChange={(_, v) => onTab(v)} variant="fullWidth" sx={{ ...tabSx, maxWidth: { sm: 520 } }}>
+// Four tabs don't fit a phone at full width, so they scroll there instead.
+const EditorTabs = ({ tab, onTab, gallery }) => {
+  const isMobile = useIsMobile();
+  return (
+  <Tabs value={tab} onChange={(_, v) => onTab(v)} variant={isMobile ? 'scrollable' : 'fullWidth'} scrollButtons={false}
+    sx={{ ...tabSx, maxWidth: { sm: 680 } }}>
     <Tab value="photos" icon={<PhotoLibrary />} iconPosition="start"
       label={<Box sx={{ display: 'flex', alignItems: 'center' }}>Photos<CountPill value={(gallery.images || []).length} /></Box>} />
     <Tab value="settings" icon={<Tune />} iconPosition="start" label="Settings" />
     <Tab value="watermark" icon={<BrandingWatermark />} iconPosition="start"
       label={<Box sx={{ display: 'flex', alignItems: 'center' }}>Watermark<StatusDot active={gallery.watermark_enabled} /></Box>} />
+    {/* The dot shows whether visits are currently being recorded */}
+    <Tab value="activity" icon={<Insights />} iconPosition="start"
+      label={<Box sx={{ display: 'flex', alignItems: 'center' }}>Activity<StatusDot active={gallery.collect_emails} /></Box>} />
   </Tabs>
-);
+  );
+};
 
 const TabPanel = ({ active, children }) => (
   <Box role="tabpanel" sx={{ display: active ? 'block' : 'none' }}>{children}</Box>
@@ -79,7 +93,7 @@ const LoadingState = () => (
         <Skeleton width="30%" />
       </Box>
     </ListShell>
-    <Skeleton variant="rounded" height={44} sx={{ mb: 3, maxWidth: 520 }} />
+    <Skeleton variant="rounded" height={44} sx={{ mb: 3, maxWidth: 680 }} />
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(auto-fill, minmax(180px, 1fr))' }, gap: 1.5 }}>
       {Array.from({ length: 8 }, (_, i) => <Skeleton key={i} variant="rounded" sx={{ aspectRatio: '1', height: 'auto' }} />)}
     </Box>
@@ -106,6 +120,9 @@ const GalleryDetails = () => {
   const { gallery, loading, error, setError, toast, setToast } = editor;
   const [params, setParams] = useSearchParams();
   const tab = TABS.includes(params.get('tab')) ? params.get('tab') : 'photos';
+  const setTab = (value) => setParams({ tab: value }, { replace: true });
+  const openActivity = useCallback(() => setParams({ tab: 'activity' }, { replace: true }), [setParams]);
+  const enableTracking = () => editor.handleChange('collect_emails', true);
 
   return (
     <Container maxWidth="xl" sx={{ py: { xs: 2.5, sm: 4 } }}>
@@ -115,7 +132,7 @@ const GalleryDetails = () => {
       {!loading && gallery && (
         <>
           <DetailsHeader gallery={gallery} saveState={editor.saveState} onCopyLink={editor.copyLink} />
-          <EditorTabs tab={tab} onTab={(v) => setParams({ tab: v }, { replace: true })} gallery={gallery} />
+          <EditorTabs tab={tab} onTab={setTab} gallery={gallery} />
           {/* Panels stay mounted so uploads and pending debounced edits survive tab switches */}
           <TabPanel active={tab === 'photos'}>
             <PhotosPanel
@@ -128,10 +145,14 @@ const GalleryDetails = () => {
             />
           </TabPanel>
           <TabPanel active={tab === 'settings'}>
-            <SettingsPanel gallery={gallery} onChange={editor.handleChange} onCopyLink={editor.copyLink} onError={setError} onToast={setToast} />
+            <SettingsPanel gallery={gallery} onChange={editor.handleChange} onCopyLink={editor.copyLink} onError={setError} onToast={setToast}
+              onOpenActivity={openActivity} />
           </TabPanel>
           <TabPanel active={tab === 'watermark'}>
             <WatermarkPanel gallery={gallery} active={tab === 'watermark'} onChange={editor.handleChange} onError={setError} />
+          </TabPanel>
+          <TabPanel active={tab === 'activity'}>
+            <ActivityPanel gallery={gallery} active={tab === 'activity'} onEnableTracking={enableTracking} />
           </TabPanel>
         </>
       )}

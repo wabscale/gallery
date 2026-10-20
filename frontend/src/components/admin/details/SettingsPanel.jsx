@@ -2,10 +2,9 @@ import { useState, memo } from 'react';
 import { Box, Grid, TextField, MenuItem, InputAdornment, IconButton, Tooltip, Button } from '@mui/material';
 import {
   Edit, Groups, Tune, Shield, Download, Build, ContentCopy, Public, AlternateEmail,
-  PhotoSizeSelectLarge, Gradient, AutoStories, BlurOn, CleaningServices, Refresh
+  PhotoSizeSelectLarge, Gradient, AutoStories, BlurOn, CleaningServices, Refresh, Insights, ArrowForward
 } from '@mui/icons-material';
 import { galleriesAPI } from '../../../services/api';
-import AccessLogs from '../AccessLogs';
 import CreditsEditor from './CreditsEditor';
 import { RegenerateThumbnailsDialog } from './BatchJobDialog';
 import { SectionCard, SwitchRow, DebouncedTextField, FieldLabel, OptionTiles, SliderField } from './fields';
@@ -104,7 +103,7 @@ const DisplayCard = ({ gallery, onChange }) => (
   </SectionCard>
 );
 
-const AccessCard = ({ gallery, onChange }) => (
+const AccessCard = ({ gallery, onChange, onOpenActivity }) => (
   <SectionCard icon={<Shield />} title="Privacy & access" subtitle="Who can see this gallery" flush>
     <SwitchRow icon={<Public />} label="Public" description="Listed on the home page and viewable by anyone"
       checked={gallery.is_public} onChange={(v) => onChange('is_public', v)} />
@@ -123,9 +122,11 @@ const AccessCard = ({ gallery, onChange }) => (
     )}
     <SwitchRow icon={<AlternateEmail />} label="Collect emails" description="Ask visitors for an email before viewing"
       checked={gallery.collect_emails} onChange={(v) => onChange('collect_emails', v)} />
-    {gallery.collect_emails && (
-      <Box sx={{ pb: 2 }}>
-        <AccessLogs galleryId={gallery.id} />
+    {gallery.collect_emails && onOpenActivity && (
+      <Box sx={{ pb: 1.5 }}>
+        <Button size="small" startIcon={<Insights />} endIcon={<ArrowForward />} onClick={onOpenActivity}>
+          View visitor activity
+        </Button>
       </Box>
     )}
   </SectionCard>
@@ -181,7 +182,7 @@ const MaintenanceCard = ({ gallery, onError, onToast }) => {
   );
 };
 
-const SettingsPanel = memo(({ gallery, onChange, onCopyLink, onError, onToast }) => (
+const SettingsPanel = memo(({ gallery, onChange, onCopyLink, onError, onToast, onOpenActivity }) => (
   <Grid container spacing={{ xs: 2, sm: 2.5 }}>
     <Grid size={{ xs: 12, md: 7 }} sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 2.5 } }}>
       <GeneralCard gallery={gallery} onChange={onChange} onCopyLink={onCopyLink} />
@@ -191,7 +192,7 @@ const SettingsPanel = memo(({ gallery, onChange, onCopyLink, onError, onToast })
       <DisplayCard gallery={gallery} onChange={onChange} />
     </Grid>
     <Grid size={{ xs: 12, md: 5 }} sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 2.5 } }}>
-      <AccessCard gallery={gallery} onChange={onChange} />
+      <AccessCard gallery={gallery} onChange={onChange} onOpenActivity={onOpenActivity} />
       <DeliveryCard gallery={gallery} onChange={onChange} />
       <MaintenanceCard gallery={gallery} onError={onError} onToast={onToast} />
     </Grid>

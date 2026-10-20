@@ -82,7 +82,8 @@ export const downloadsAPI = {
 
 export const adminAPI = {
   getMetrics: () => api.get('/auth/admin/metrics'),
-  getActivity: (days = 30) => api.get('/auth/admin/activity', { params: { days } }),
+  getActivity: (days = 30, tz = Intl.DateTimeFormat().resolvedOptions().timeZone) =>
+    api.get('/auth/admin/activity', { params: { days, tz } }),
   getAuditLogs: (page = 1, perPage = 50) => api.get('/auth/admin/audit-logs', { params: { page, per_page: perPage } }),
   listUsers: () => api.get('/auth/admin/users'),
   createUser: (data) => api.post('/auth/admin/users', data),

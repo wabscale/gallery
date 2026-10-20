@@ -4,7 +4,7 @@ from flask_login import login_user, logout_user, current_user
 from app import bcrypt, cache
 from app.models import db, Admin, AuditLog, Gallery, Image, GalleryAccessLog
 from app.utils.decorators import admin_required, audit_log
-from app.utils.helpers import to_utc_iso
+from app.utils.helpers import to_utc_iso, resolve_timezone, count_by_local_day, local_weekday_hour_heatmap
 from sqlalchemy import func
 
 bp = Blueprint('admin', __name__, url_prefix='/api/auth')
@@ -203,34 +203,7 @@ def get_audit_logs():
     }), 200
 
 
-@bp.route('/admin/activity', methods=['GET'])
-@admin_required
-@cache.cached(timeout=300, key_prefix='admin_activity')
-def get_activity():
-    days = request.args.get('days', 30, type=int)
-    since = datetime.utcnow() - timedelta(days=days)
-
-    uploads_by_day = db.session.query(
-        func.date(Image.uploaded_at).label('day'),
-        func.count(Image.id).label('count')
-    ).filter(Image.uploaded_at >= since).group_by('day').all()
-
-    views_by_day = db.session.query(
-        func.date(GalleryAccessLog.created_at).label('day'),
-        func.count(GalleryAccessLog.id).label('count')
-    ).filter(
-        GalleryAccessLog.created_at >= since,
-        GalleryAccessLog.action == 'view_gallery'
-    ).group_by('day').all()
-
-    downloads_by_day = db.session.query(
-        func.date(GalleryAccessLog.created_at).label('day'),
-        func.count(GalleryAccessLog.id).label('count')
-    ).filter(
-        GalleryAccessLog.created_at >= since,
-        GalleryAccessLog.action == 'download_gallery'
-    ).group_by('day').all()
-
+def _storage_and_upload_rankings(since):
     storage_by_gallery = db.session.query(
         Gallery.name,
         func.sum(Image.file_size).label('total_size'),
@@ -246,28 +219,38 @@ def get_activity():
         Image.uploaded_at >= since
     ).group_by(Gallery.id).order_by(func.count(Image.id).desc()).limit(10).all()
 
-    hourly_activity = db.session.query(
-        func.dayofweek(GalleryAccessLog.created_at).label('dow'),
-        func.hour(GalleryAccessLog.created_at).label('hour'),
-        func.count(GalleryAccessLog.id).label('count')
-    ).filter(
-        GalleryAccessLog.created_at >= since
-    ).group_by('dow', 'hour').all()
+    return (
+        [{'name': r.name, 'size': r.total_size, 'count': r.image_count} for r in storage_by_gallery],
+        [{'name': r.name, 'count': r.count} for r in uploads_by_gallery],
+    )
 
-    heatmap = [[0] * 24 for _ in range(7)]
-    for r in hourly_activity:
-        dow = (r.dow - 1) % 7
-        heatmap[dow][r.hour] = r.count
+
+@bp.route('/admin/activity', methods=['GET'])
+@admin_required
+@cache.cached(timeout=300, query_string=True)
+def get_activity():
+    """Activity charts bucketed by day/hour in the viewer's timezone.
+
+    Timestamps are stored in UTC; the frontend passes its IANA zone in `tz`
+    so days and hours line up with the admin's local clock.
+    """
+    days = request.args.get('days', 30, type=int)
+    tz = resolve_timezone(request.args.get('tz', 'UTC'))
+    if tz is None:
+        return jsonify({'error': 'Unknown timezone'}), 400
+    since = datetime.utcnow() - timedelta(days=days)
+
+    upload_times = [r.uploaded_at for r in db.session.query(Image.uploaded_at).filter(Image.uploaded_at >= since)]
+    access_rows = db.session.query(GalleryAccessLog.created_at, GalleryAccessLog.action).filter(
+        GalleryAccessLog.created_at >= since
+    ).all()
+    storage_by_gallery, uploads_by_gallery = _storage_and_upload_rankings(since)
 
     return jsonify({
-        'uploads_by_day': [{'date': str(r.day), 'count': r.count} for r in uploads_by_day],
-        'views_by_day': [{'date': str(r.day), 'count': r.count} for r in views_by_day],
-        'downloads_by_day': [{'date': str(r.day), 'count': r.count} for r in downloads_by_day],
-        'storage_by_gallery': [{
-            'name': r.name,
-            'size': r.total_size,
-            'count': r.image_count
-        } for r in storage_by_gallery],
-        'uploads_by_gallery': [{'name': r.name, 'count': r.count} for r in uploads_by_gallery],
-        'activity_heatmap': heatmap,
+        'uploads_by_day': count_by_local_day(upload_times, tz),
+        'views_by_day': count_by_local_day([r.created_at for r in access_rows if r.action == 'access'], tz),
+        'downloads_by_day': count_by_local_day([r.created_at for r in access_rows if r.action == 'download_gallery'], tz),
+        'storage_by_gallery': storage_by_gallery,
+        'uploads_by_gallery': uploads_by_gallery,
+        'activity_heatmap': local_weekday_hour_heatmap([r.created_at for r in access_rows], tz),
     }), 200

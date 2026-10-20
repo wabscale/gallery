@@ -19,6 +19,7 @@ dependencies = [
     "stream-zip==0.0.83",
     "python-dotenv==1.0.1",
     "cairosvg==2.9.0",
+    "tzdata==2026.5",
 ]
 
 [project.optional-dependencies]

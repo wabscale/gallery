@@ -1,7 +1,9 @@
 import os
 import re
 import secrets
+from collections import Counter
 from datetime import timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from werkzeug.utils import secure_filename
 
 
@@ -44,3 +46,29 @@ def to_utc_iso(dt):
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc).isoformat()
 
+
+def resolve_timezone(name):
+    """Return a ZoneInfo for an IANA name such as 'America/New_York', or None."""
+    try:
+        return ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError):
+        return None
+
+
+def to_local(dt, tz):
+    """Convert a naive UTC datetime from the database into the given zone."""
+    return dt.replace(tzinfo=timezone.utc).astimezone(tz)
+
+
+def count_by_local_day(timestamps, tz):
+    counts = Counter(to_local(ts, tz).date().isoformat() for ts in timestamps)
+    return [{'date': day, 'count': count} for day, count in sorted(counts.items())]
+
+
+def local_weekday_hour_heatmap(timestamps, tz):
+    """7x24 grid indexed [weekday][hour] with Monday as row 0."""
+    heatmap = [[0] * 24 for _ in range(7)]
+    for ts in timestamps:
+        local = to_local(ts, tz)
+        heatmap[local.weekday()][local.hour] += 1
+    return heatmap

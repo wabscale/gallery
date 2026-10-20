@@ -7,6 +7,7 @@ from app.models import db, Gallery, GalleryCredit, Image, GalleryAccessLog
 from app.utils.decorators import admin_required, audit_log
 from app.utils.helpers import slugify, to_utc_iso
 from flask import current_app
+from sqlalchemy.orm import joinedload
 
 bp = Blueprint('galleries', __name__)
 
@@ -446,10 +447,11 @@ def clear_gallery_cache(id):
 def get_gallery_access_logs(id):
     gallery = Gallery.query.get_or_404(id)
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 50, type=int)
+    per_page = min(request.args.get('per_page', 50, type=int), 1000)
 
     query = GalleryAccessLog.query.filter_by(gallery_id=gallery.id)\
-        .order_by(GalleryAccessLog.created_at.desc())
+        .options(joinedload(GalleryAccessLog.image))\
+        .order_by(GalleryAccessLog.created_at.desc(), GalleryAccessLog.id.desc())
 
     total = query.count()
     logs = query.offset((page - 1) * per_page).limit(per_page).all()

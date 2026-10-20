@@ -1,6 +1,7 @@
 import os
 import re
 import secrets
+from datetime import timezone
 from werkzeug.utils import secure_filename
 
 
@@ -28,3 +29,18 @@ def format_file_size(size_bytes):
             return f"{size_bytes:.2f} {unit}"
         size_bytes /= 1024.0
     return f"{size_bytes:.2f} TB"
+
+
+def to_utc_iso(dt):
+    """Serialize a stored datetime with an explicit UTC offset.
+
+    Columns are written with datetime.utcnow(), so naive values are UTC.
+    Without the offset, browsers parse the string as local time and events
+    show up hours off (often in the future).
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).isoformat()
+

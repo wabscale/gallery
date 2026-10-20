@@ -4,6 +4,7 @@ from flask_login import login_user, logout_user, current_user
 from app import bcrypt, cache
 from app.models import db, Admin, AuditLog, Gallery, Image, GalleryAccessLog
 from app.utils.decorators import admin_required, audit_log
+from app.utils.helpers import to_utc_iso
 from sqlalchemy import func
 
 bp = Blueprint('admin', __name__, url_prefix='/api/auth')
@@ -52,7 +53,7 @@ def get_current_admin():
         'id': current_user.id,
         'username': current_user.username,
         'email': current_user.email,
-        'created_at': current_user.created_at.isoformat()
+        'created_at': to_utc_iso(current_user.created_at)
     }), 200
 
 
@@ -72,7 +73,7 @@ def get_metrics():
         'recent_uploads': [{
             'id': img.id,
             'filename': img.original_filename,
-            'uploaded_at': img.uploaded_at.isoformat()
+            'uploaded_at': to_utc_iso(img.uploaded_at)
         } for img in recent_uploads]
     }), 200
 
@@ -86,7 +87,7 @@ def list_users():
         'username': u.username,
         'email': u.email,
         'is_active': u.is_active,
-        'created_at': u.created_at.isoformat(),
+        'created_at': to_utc_iso(u.created_at),
     } for u in users]), 200
 
 
@@ -190,7 +191,7 @@ def get_audit_logs():
         'resource_id': log.resource_id,
         'details': log.details,
         'ip_address': log.ip_address,
-        'created_at': log.created_at.isoformat()
+        'created_at': to_utc_iso(log.created_at)
     } for log in pagination.items]
 
     return jsonify({

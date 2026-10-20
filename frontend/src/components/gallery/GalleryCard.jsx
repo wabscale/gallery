@@ -4,6 +4,7 @@ import { PhotoLibrary } from '@mui/icons-material';
 import { galleriesAPI } from '../../services/api';
 import { useSiteSettings } from '../../hooks/useSiteSettings';
 import { useIsTouch } from '../../hooks/useIsMobile';
+import { parseServerDate } from '../admin/common/format';
 
 const ASPECT_RATIOS = {
   '1x1': '1 / 1',
@@ -147,7 +148,7 @@ const GalleryCard = ({ gallery }) => {
             {gallery.image_count} images
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Created {new Date(gallery.created_at).toLocaleDateString()}
+            Created {parseServerDate(gallery.created_at).toLocaleDateString()}
           </Typography>
         </CardContent>
       </CardActionArea>

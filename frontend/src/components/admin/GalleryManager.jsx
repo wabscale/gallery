@@ -4,6 +4,7 @@ import { Container, Button, Alert, Snackbar } from '@mui/material';
 import { Add, PhotoLibrary, SearchOff } from '@mui/icons-material';
 import { galleriesAPI } from '../../services/api';
 import { ListShell, SkeletonRows, EmptyState, PageHeader } from './common/DataList';
+import { serverTime } from './common/format';
 import GalleryToolbar from './galleries/GalleryToolbar';
 import GalleryListView from './galleries/GalleryListView';
 import GalleryGridView from './galleries/GalleryGridView';
@@ -12,8 +13,8 @@ import { CreateGalleryDialog, DeleteGalleryDialog } from './galleries/GalleryDia
 const VIEW_KEY = 'adminGalleryView';
 
 const SORTERS = {
-  newest: (a, b) => new Date(b.created_at) - new Date(a.created_at),
-  oldest: (a, b) => new Date(a.created_at) - new Date(b.created_at),
+  newest: (a, b) => serverTime(b.created_at) - serverTime(a.created_at),
+  oldest: (a, b) => serverTime(a.created_at) - serverTime(b.created_at),
   name: (a, b) => a.name.localeCompare(b.name),
   photos: (a, b) => b.image_count - a.image_count,
 };

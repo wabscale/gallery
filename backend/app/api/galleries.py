@@ -5,7 +5,7 @@ from flask_login import current_user
 from app import bcrypt, cache
 from app.models import db, Gallery, GalleryCredit, Image, GalleryAccessLog
 from app.utils.decorators import admin_required, audit_log
-from app.utils.helpers import slugify
+from app.utils.helpers import slugify, to_utc_iso
 from flask import current_app
 
 bp = Blueprint('galleries', __name__)
@@ -58,7 +58,7 @@ def list_public_galleries():
         'image_count': g.image_count,
         'hover_animation': g.hover_animation,
         'cover_image_id': g.cover_image_id,
-        'created_at': g.created_at.isoformat()
+        'created_at': to_utc_iso(g.created_at)
     } for g in galleries]), 200
 
 
@@ -182,8 +182,8 @@ def list_all_galleries():
         'cover_image_id': g.cover_image_id,
         'image_count': g.image_count,
         'owner_id': g.owner_id,
-        'created_at': g.created_at.isoformat(),
-        'updated_at': g.updated_at.isoformat()
+        'created_at': to_utc_iso(g.created_at),
+        'updated_at': to_utc_iso(g.updated_at)
     } for g in galleries]), 200
 
 
@@ -285,8 +285,8 @@ def get_gallery(id):
         'cover_image_id': gallery.cover_image_id,
         'image_count': gallery.image_count,
         'owner_id': gallery.owner_id,
-        'created_at': gallery.created_at.isoformat(),
-        'updated_at': gallery.updated_at.isoformat(),
+        'created_at': to_utc_iso(gallery.created_at),
+        'updated_at': to_utc_iso(gallery.updated_at),
         'images': [{
             'id': img.id,
             'filename': img.filename,
@@ -465,6 +465,6 @@ def get_gallery_access_logs(id):
             'image_id': log.image_id,
             'image_filename': log.image.original_filename if log.image else None,
             'ip_address': log.ip_address,
-            'created_at': log.created_at.isoformat()
+            'created_at': to_utc_iso(log.created_at)
         } for log in logs]
     }), 200

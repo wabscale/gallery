@@ -14,6 +14,7 @@ import {
 import { galleriesAPI, imagesAPI } from '../../services/api';
 import ImageUploader from './ImageUploader';
 import ImageModal from '../gallery/ImageModal';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const DebouncedTextField = memo(({ value: externalValue, onChange, ...props }) => {
   const [localValue, setLocalValue] = useState(externalValue);
@@ -36,6 +37,8 @@ const DebouncedTextField = memo(({ value: externalValue, onChange, ...props }) =
 
   return <TextField value={localValue} onChange={handleChange} {...props} />;
 });
+
+const PAPER_SX = { p: { xs: 2, sm: 3 } };
 
 const GalleryDetails = () => {
   const { id } = useParams();
@@ -166,8 +169,10 @@ const GalleryDetails = () => {
   const images = gallery.images || [];
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" mb={4}>Edit Gallery</Typography>
+    <Container maxWidth="lg" sx={{ py: { xs: 2.5, sm: 4 } }}>
+      <Typography variant="h4" mb={{ xs: 2.5, sm: 4 }} sx={{ fontSize: { xs: '1.75rem', sm: '2.125rem' } }}>
+        Edit Gallery
+      </Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Snackbar
@@ -178,9 +183,9 @@ const GalleryDetails = () => {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
 
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, sm: 3 }}>
         <Grid size={{ xs: 12, md: 6 }}>
-          <Paper sx={{ p: 3 }}>
+          <Paper sx={PAPER_SX}>
             <Typography variant="h6" gutterBottom>Gallery Settings</Typography>
             <GallerySettingsForm
               gallery={gallery}
@@ -191,7 +196,7 @@ const GalleryDetails = () => {
         </Grid>
 
         <Grid size={{ xs: 12, md: 6 }}>
-          <Paper sx={{ p: 3 }}>
+          <Paper sx={PAPER_SX}>
             <Typography variant="h6" gutterBottom>
               Upload Images ({images.length} total)
             </Typography>
@@ -206,8 +211,8 @@ const GalleryDetails = () => {
         )}
 
         <Grid size={{ xs: 12 }}>
-          <Paper sx={{ p: 3 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Paper sx={PAPER_SX}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1} mb={2}>
               <Typography variant="h6">
                 Images ({images.length})
               </Typography>
@@ -338,7 +343,7 @@ const RegenerateThumbnails = ({ galleryId, images }) => {
           )}
           {(running || progress.done > 0) && (
             <Box sx={{ mt: 1 }}>
-              <Box display="flex" justifyContent="space-between" mb={1}>
+              <Box display="flex" justifyContent="space-between" flexWrap="wrap" columnGap={2} mb={1}>
                 <Typography variant="body2">
                   {progress.done} / {progress.total} images processed
                 </Typography>
@@ -582,7 +587,7 @@ const GallerySettingsForm = memo(({ gallery, onChange, onCopyLink }) => {
       {/* Display */}
       <SectionLabel>Display</SectionLabel>
       <Grid container spacing={1}>
-        <Grid size={{ xs: 6 }}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <FormControl fullWidth size="small">
             <InputLabel>Aspect Ratio</InputLabel>
             <Select
@@ -598,7 +603,7 @@ const GallerySettingsForm = memo(({ gallery, onChange, onCopyLink }) => {
             </Select>
           </FormControl>
         </Grid>
-        <Grid size={{ xs: 6 }}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <FormControl fullWidth size="small">
             <InputLabel>Hover Effect</InputLabel>
             <Select
@@ -612,8 +617,8 @@ const GallerySettingsForm = memo(({ gallery, onChange, onCopyLink }) => {
             </Select>
           </FormControl>
         </Grid>
-        <Grid size={{ xs: 6 }}>
-          <FormControl fullWidth size="small" sx={{ mt: 1 }}>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <FormControl fullWidth size="small" sx={{ mt: { xs: 0, sm: 1 } }}>
             <InputLabel>Sort Order</InputLabel>
             <Select
               value={gallery.image_sort || 'name_asc'}
@@ -629,7 +634,7 @@ const GallerySettingsForm = memo(({ gallery, onChange, onCopyLink }) => {
             </Select>
           </FormControl>
         </Grid>
-        <Grid size={{ xs: 6 }}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             fullWidth
             type="number"
@@ -637,7 +642,7 @@ const GallerySettingsForm = memo(({ gallery, onChange, onCopyLink }) => {
             value={gallery.thumbnail_quality}
             onChange={(e) => onChange('thumbnail_quality', parseInt(e.target.value))}
             size="small"
-            sx={{ mt: 1 }}
+            sx={{ mt: { xs: 0, sm: 1 } }}
             inputProps={{ min: 1, max: 100 }}
           />
         </Grid>
@@ -669,7 +674,7 @@ const GallerySettingsForm = memo(({ gallery, onChange, onCopyLink }) => {
 
       {/* Watermark */}
       <Divider sx={{ mt: 2.5, mb: 1.5 }} />
-      <Box display="flex" alignItems="center" justifyContent="space-between">
+      <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
         <FormControlLabel
           control={<Switch checked={gallery.watermark_enabled} onChange={(e) => onChange('watermark_enabled', e.target.checked)} size="small" />}
           label="Watermark"
@@ -718,11 +723,58 @@ const FONT_OPTIONS = [
   { value: 'lato', label: 'Lato' },
 ];
 
+// On phones the preview is pinned to the top of the full-screen dialog so
+// changes stay visible while scrolling through the controls below it.
+const WatermarkPreview = ({ previewUrl, previewLoading, onDone }) => (
+  <Grid
+    size={{ xs: 12, md: 7 }}
+    sx={{
+      order: { xs: -1, md: 0 },
+      position: { xs: 'sticky', md: 'static' },
+      top: 0,
+      zIndex: 2,
+      bgcolor: 'background.paper',
+      pt: { xs: 2, md: 0 },
+      pb: { xs: 1, md: 0 },
+    }}
+  >
+    <Typography variant="body2" color="text.secondary" gutterBottom>
+      Preview
+    </Typography>
+    <Box sx={{
+      border: '1px solid', borderColor: 'divider', borderRadius: 1,
+      overflow: 'hidden', bgcolor: 'grey.100', minHeight: { xs: 120, md: 200 },
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      {previewLoading && !previewUrl && (
+        <Typography color="text.secondary">Loading...</Typography>
+      )}
+      {previewUrl && (
+        <Box
+          component="img"
+          src={previewUrl}
+          alt="Watermark preview"
+          onLoad={onDone}
+          onError={onDone}
+          sx={{
+            width: '100%', display: 'block',
+            maxHeight: { xs: '32vh', md: 'none' },
+            objectFit: 'contain',
+            opacity: previewLoading ? 0.5 : 1,
+            transition: 'opacity 0.2s',
+          }}
+        />
+      )}
+    </Box>
+  </Grid>
+);
+
 const WatermarkDialog = memo(({ open, onClose, gallery, onChange, images }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const previewTimeoutRef = useRef(null);
+  const isMobile = useIsMobile();
 
   const wmType = gallery.watermark_type || 'text';
 
@@ -804,10 +856,10 @@ const WatermarkDialog = memo(({ open, onClose, gallery, onChange, images }) => {
   const hasImages = (gallery.images || []).length > 0;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={isMobile}>
       <DialogTitle>Watermark Settings</DialogTitle>
-      <DialogContent dividers>
-        <Grid container spacing={3}>
+      <DialogContent dividers sx={{ pt: { xs: hasImages ? 0 : 2, md: 2 } }}>
+        <Grid container spacing={{ xs: 2, md: 3 }}>
           <Grid size={{ xs: 12, md: hasImages ? 5 : 12 }}>
             {/* Type selector */}
             <FormControl fullWidth margin="dense" size="small">
@@ -1007,33 +1059,11 @@ const WatermarkDialog = memo(({ open, onClose, gallery, onChange, images }) => {
           </Grid>
 
           {hasImages && (
-            <Grid size={{ xs: 12, md: 7 }}>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Preview
-              </Typography>
-              <Box sx={{
-                border: '1px solid', borderColor: 'divider', borderRadius: 1,
-                overflow: 'hidden', bgcolor: 'grey.100', minHeight: 200,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {previewLoading && !previewUrl && (
-                  <Typography color="text.secondary">Loading...</Typography>
-                )}
-                {previewUrl && (
-                  <img
-                    src={previewUrl}
-                    alt="Watermark preview"
-                    onLoad={() => setPreviewLoading(false)}
-                    onError={() => setPreviewLoading(false)}
-                    style={{
-                      width: '100%', display: 'block',
-                      opacity: previewLoading ? 0.5 : 1,
-                      transition: 'opacity 0.2s',
-                    }}
-                  />
-                )}
-              </Box>
-            </Grid>
+            <WatermarkPreview
+              previewUrl={previewUrl}
+              previewLoading={previewLoading}
+              onDone={() => setPreviewLoading(false)}
+            />
           )}
         </Grid>
         {images.length > 0 && (
@@ -1137,7 +1167,7 @@ const RegenerateWatermarks = ({ galleryId, images }) => {
           )}
           {(running || progress.done > 0) && (
             <Box sx={{ mt: 1 }}>
-              <Box display="flex" justifyContent="space-between" mb={1}>
+              <Box display="flex" justifyContent="space-between" flexWrap="wrap" columnGap={2} mb={1}>
                 <Typography variant="body2">
                   {progress.done} / {progress.total} images processed
                 </Typography>
@@ -1208,7 +1238,7 @@ const ImageManager = ({
 
   return (
     <>
-      <Grid container spacing={2}>
+      <Grid container spacing={{ xs: 1, sm: 2 }}>
         {images.map((img, index) => (
           <Grid size={{ xs: 6, sm: 4, md: 3 }} key={img.id}>
             <ImageCard
@@ -1356,6 +1386,7 @@ const AccessLogs = ({ galleryId }) => {
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const loadLogs = useCallback(async () => {
     setLoading(true);
@@ -1419,7 +1450,7 @@ const AccessLogs = ({ galleryId }) => {
 
   return (
     <>
-      <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
         <Box>
           <Typography variant="subtitle1" fontWeight="bold">
             Visitor Access Logs
@@ -1438,9 +1469,9 @@ const AccessLogs = ({ galleryId }) => {
         </Box>
       </Paper>
 
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="md" fullWidth>
+      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="md" fullWidth fullScreen={isMobile}>
         <DialogTitle>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
             <Typography variant="h6">Visitor Access Logs</Typography>
             <Button size="small" startIcon={<Download />} onClick={exportCsv}>
               Export CSV

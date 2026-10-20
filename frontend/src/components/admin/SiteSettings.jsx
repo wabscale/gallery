@@ -79,15 +79,17 @@ const SiteSettings = () => {
   if (loading) return <Typography>Loading...</Typography>;
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" mb={4}>Site Settings</Typography>
+    <Container maxWidth="md" sx={{ py: { xs: 2.5, sm: 4 } }}>
+      <Typography variant="h4" mb={{ xs: 2.5, sm: 4 }} sx={{ fontSize: { xs: '1.75rem', sm: '2.125rem' } }}>
+        Site Settings
+      </Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, sm: 3 }}>
         <Grid size={{ xs: 12, md: 6 }}>
-          <Paper sx={{ p: 3 }}>
+          <Paper sx={{ p: { xs: 2, sm: 3 } }}>
             <Typography variant="h6" gutterBottom>Branding</Typography>
 
             <TextField
@@ -134,7 +136,7 @@ const SiteSettings = () => {
         </Grid>
 
         <Grid size={{ xs: 12, md: 6 }}>
-          <Paper sx={{ p: 3 }}>
+          <Paper sx={{ p: { xs: 2, sm: 3 } }}>
             <Typography variant="h6" gutterBottom>Favicon</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Upload a PNG, JPG, or ICO file. PNG/JPG files are automatically converted to ICO format
@@ -142,7 +144,7 @@ const SiteSettings = () => {
             </Typography>
 
             {hasFavicon && (
-              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
                 <Box
                   component="img"
                   src={`/api/favicon.ico?t=${Date.now()}`}

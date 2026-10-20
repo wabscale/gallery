@@ -2,12 +2,14 @@ import { useState, useCallback, useRef } from 'react';
 import { Box, Typography, Paper, LinearProgress, List, ListItem, ListItemText, IconButton, Tooltip } from '@mui/material';
 import { CloudUpload, CheckCircle, Error, Delete, Replay } from '@mui/icons-material';
 import { imagesAPI } from '../../services/api';
+import { useIsTouch } from '../../hooks/useIsMobile';
 
 const MAX_RETRIES = 3;
 const MAX_CONCURRENT = 5;
 
 const ImageUploader = ({ galleryId, onUploadComplete }) => {
   const [uploadQueue, setUploadQueue] = useState([]);
+  const isTouch = useIsTouch();
   const activeUploadsRef = useRef(0);
   const pendingQueueRef = useRef([]);
 
@@ -136,7 +138,7 @@ const ImageUploader = ({ galleryId, onUploadComplete }) => {
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
         sx={{
-          p: 4,
+          p: { xs: 3, sm: 4 },
           textAlign: 'center',
           border: '2px dashed #ccc',
           cursor: 'pointer',
@@ -144,9 +146,9 @@ const ImageUploader = ({ galleryId, onUploadComplete }) => {
         }}
         onClick={() => document.getElementById('file-input').click()}
       >
-        <CloudUpload sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-        <Typography variant="h6" gutterBottom>
-          Drop images here or click to browse
+        <CloudUpload sx={{ fontSize: { xs: 40, sm: 48 }, color: 'text.secondary', mb: { xs: 1, sm: 2 } }} />
+        <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
+          {isTouch ? 'Tap to select images' : 'Drop images here or click to browse'}
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Supports JPG, PNG, GIF, WebP
@@ -164,7 +166,7 @@ const ImageUploader = ({ galleryId, onUploadComplete }) => {
       {uploadQueue.length > 0 && (
         <Paper sx={{ mt: 3, p: 2 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-            <Typography variant="h6">
+            <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
               Upload Queue ({uploadQueue.filter(u => u.status === 'completed').length} / {uploadQueue.length})
             </Typography>
             <Box display="flex" gap={0.5}>

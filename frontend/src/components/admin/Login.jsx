@@ -27,9 +27,15 @@ const Login = () => {
   };
 
   return (
-    <Container maxWidth="xs" sx={{ mt: 8 }}>
-      <Paper elevation={3} sx={{ p: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom align="center">
+    <Container maxWidth="xs" sx={{ mt: { xs: 4, sm: 8 } }}>
+      <Paper elevation={3} sx={{ p: { xs: 3, sm: 4 } }}>
+        <Typography
+          variant="h4"
+          component="h1"
+          gutterBottom
+          align="center"
+          sx={{ fontSize: { xs: '1.75rem', sm: '2.125rem' } }}
+        >
           Admin Login
         </Typography>
 

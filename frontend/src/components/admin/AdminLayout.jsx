@@ -118,7 +118,8 @@ const AdminLayout = ({ children }) => {
           </AppBar>
         </>
       )}
-      <Box component="main" sx={{ flexGrow: 1, minWidth: 0, overflow: 'auto' }}>
+      {/* clip (not auto) so main isn't a scroll container, which would break position: sticky */}
+      <Box component="main" sx={{ flexGrow: 1, minWidth: 0, overflowX: 'clip' }}>
         {children}
       </Box>
     </Box>

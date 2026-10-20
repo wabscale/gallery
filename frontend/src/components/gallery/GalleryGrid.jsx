@@ -41,6 +41,33 @@ const getGridSize = (aspectRatio) => {
   }
 };
 
+// Separators are dropped on phones so wrapped lines never start with a stray "|".
+const GalleryMeta = ({ imageCount, credits }) => (
+  <Box display="flex" alignItems="center" flexWrap="wrap" columnGap={{ xs: 2, sm: 1 }} rowGap={0.5} sx={{ mt: 0.5 }}>
+    <Typography variant="body2" color="text.secondary">
+      {imageCount} {imageCount === 1 ? 'photo' : 'photos'}
+    </Typography>
+    {credits.map((credit) => (
+      <Box key={credit.id} display="flex" alignItems="center" gap={1}>
+        <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
+          |
+        </Typography>
+        <a
+          href={`https://instagram.com/${credit.instagram}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
+        >
+          <InstagramIcon size={16} />
+          <Typography variant="body2" color="text.secondary">
+            {credit.role} @{credit.instagram}
+          </Typography>
+        </a>
+      </Box>
+    ))}
+  </Box>
+);
+
 const GalleryGrid = () => {
   const { slug } = useParams();
   const [gallery, setGallery] = useState(null);
@@ -185,36 +212,29 @@ const GalleryGrid = () => {
   if (!gallery) return null;
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={4}>
-        <Box>
-          <Typography variant="h4" component="h1">{gallery.name}</Typography>
+    <Container maxWidth="xl" sx={{ py: { xs: 2.5, sm: 4 } }}>
+      <Box
+        display="flex"
+        flexDirection={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'stretch', sm: 'flex-start' }}
+        gap={2}
+        mb={{ xs: 2.5, sm: 4 }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{ fontSize: { xs: '1.6rem', sm: '2.125rem' }, overflowWrap: 'anywhere' }}
+          >
+            {gallery.name}
+          </Typography>
           {gallery.description && (
             <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5, whiteSpace: 'pre-line' }}>
               {gallery.description}
             </Typography>
           )}
-          <Box display="flex" alignItems="center" flexWrap="wrap" gap={1} sx={{ mt: 0.5 }}>
-            <Typography variant="body2" color="text.secondary">
-              {gallery.image_count} {gallery.image_count === 1 ? 'photo' : 'photos'}
-            </Typography>
-            {(gallery.credits || []).map((credit) => (
-              <Box key={credit.id} display="flex" alignItems="center" gap={1}>
-                <Typography variant="body2" color="text.secondary">|</Typography>
-                <a
-                  href={`https://instagram.com/${credit.instagram}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
-                >
-                  <InstagramIcon size={16} />
-                  <Typography variant="body2" color="text.secondary">
-                    {credit.role} @{credit.instagram}
-                  </Typography>
-                </a>
-              </Box>
-            ))}
-          </Box>
+          <GalleryMeta imageCount={gallery.image_count} credits={gallery.credits || []} />
         </Box>
         {gallery.allow_download && (
           <Button
@@ -222,13 +242,14 @@ const GalleryGrid = () => {
             startIcon={<Download />}
             onClick={handleDownloadGallery}
             disabled={downloadStatus === 'requesting' || downloadStatus === 'processing'}
+            sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
           >
             {downloadStatus === 'processing' ? 'Preparing...' : 'Download Gallery'}
           </Button>
         )}
       </Box>
 
-      <Grid container spacing={2}>
+      <Grid container spacing={{ xs: 1, sm: 2 }}>
         {gallery.images.map((image, index) => (
           <Grid size={getGridSize(gallery.thumbnail_aspect_ratio || '4x5')} key={image.id}>
             <ImageThumbnail

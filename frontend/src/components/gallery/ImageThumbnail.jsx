@@ -24,9 +24,11 @@ const ImageThumbnail = ({ image, galleryId, onClick, aspectRatio = '4x5' }) => {
       sx={{
         cursor: 'pointer',
         transition: 'transform 0.2s',
-        '&:hover': {
-          transform: 'scale(1.05)',
-          boxShadow: 3
+        '@media (hover: hover)': {
+          '&:hover': {
+            transform: 'scale(1.05)',
+            boxShadow: 3
+          }
         }
       }}
     >

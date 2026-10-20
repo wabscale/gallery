@@ -3,6 +3,7 @@ import { Card, CardActionArea, CardContent, Typography, Box } from '@mui/materia
 import { PhotoLibrary } from '@mui/icons-material';
 import { galleriesAPI } from '../../services/api';
 import { useSiteSettings } from '../../hooks/useSiteSettings';
+import { useIsTouch } from '../../hooks/useIsMobile';
 
 const ASPECT_RATIOS = {
   '1x1': '1 / 1',
@@ -30,6 +31,8 @@ const GalleryCard = ({ gallery }) => {
   const [glitchActive, setGlitchActive] = useState(false);
   const intervalRef = useRef(null);
   const fetchedRef = useRef(false);
+  const cardRef = useRef(null);
+  const isTouch = useIsTouch();
 
   const animationType = gallery.hover_animation || 'crossfade';
   const aspectRatio = settings.gallery_card_aspect_ratio || '4x5';
@@ -68,21 +71,37 @@ const GalleryCard = ({ gallery }) => {
     return () => clearInterval(intervalRef.current);
   }, [hovered, images, animationType]);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     setHovered(true);
     fetchImages();
-  };
+  }, [fetchImages]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     setHovered(false);
     setCurrentIndex(0);
     setGlitchActive(false);
-  };
+  }, []);
+
+  // Touch screens have no hover, so play the preview while the card is
+  // mostly visible in the viewport instead.
+  useEffect(() => {
+    if (!isTouch || !cardRef.current) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) handleMouseEnter();
+      else handleMouseLeave();
+    }, { threshold: 0.75 });
+    observer.observe(cardRef.current);
+    return () => observer.disconnect();
+  }, [isTouch, handleMouseEnter, handleMouseLeave]);
 
   const showAnimations = hovered && images && images.length > 0;
 
   return (
-    <Card onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+    <Card
+      ref={cardRef}
+      onMouseEnter={isTouch ? undefined : handleMouseEnter}
+      onMouseLeave={isTouch ? undefined : handleMouseLeave}
+    >
       <CardActionArea href={`/gallery/${gallery.slug}`}>
         <Box sx={{ aspectRatio: cssAspectRatio, position: 'relative', overflow: 'hidden', bgcolor: 'grey.900' }}>
           {showAnimations ? (
@@ -116,8 +135,12 @@ const GalleryCard = ({ gallery }) => {
             </Box>
           )}
         </Box>
-        <CardContent>
-          <Typography variant="h6" component="h2">
+        <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 3 } } }}>
+          <Typography
+            variant="h6"
+            component="h2"
+            sx={{ fontSize: { xs: '1rem', sm: '1.25rem' }, lineHeight: { xs: 1.3, sm: 1.6 }, overflowWrap: 'anywhere' }}
+          >
             {gallery.name}
           </Typography>
           <Typography variant="body2" color="text.secondary">

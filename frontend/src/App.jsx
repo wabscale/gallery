@@ -78,7 +78,8 @@ const PublicLayout = ({ children }) => {
             variant="h6"
             component="a"
             href="/"
-            sx={{ flexGrow: 1, textDecoration: 'none', color: 'inherit' }}
+            noWrap
+            sx={{ flexGrow: 1, minWidth: 0, textDecoration: 'none', color: 'inherit' }}
           >
             {settings.site_heading}
           </Typography>

@@ -10,6 +10,36 @@ const accentPulse = (color) => `
   }
 `;
 
+const HOVER = '@media (hover: hover)';
+
+// Layout-only overrides shared by both themes. These only apply below the
+// sm breakpoint so the desktop layout is unchanged.
+const mobileDialog = (theme) => ({
+  [theme.breakpoints.down('sm')]: {
+    margin: theme.spacing(2),
+    width: `calc(100% - ${theme.spacing(4)})`,
+    maxHeight: `calc(100% - ${theme.spacing(4)})`,
+  },
+});
+
+const sharedComponents = {
+  MuiDialog: {
+    styleOverrides: {
+      paper: ({ theme, ownerState }) => (ownerState.fullScreen ? {} : mobileDialog(theme)),
+    },
+  },
+  MuiContainer: {
+    styleOverrides: {
+      root: ({ theme }) => ({
+        [theme.breakpoints.down('sm')]: {
+          paddingLeft: theme.spacing(1.5),
+          paddingRight: theme.spacing(1.5),
+        },
+      }),
+    },
+  },
+};
+
 const darkTheme = createTheme({
   palette: {
     mode: 'dark',
@@ -29,6 +59,7 @@ const darkTheme = createTheme({
     },
   },
   components: {
+    ...sharedComponents,
     MuiCssBaseline: {
       styleOverrides: `
         @keyframes bgGlow {
@@ -98,10 +129,12 @@ const darkTheme = createTheme({
           backgroundColor: '#12121a',
           border: '1px solid #00d9d920',
           transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
-          '&:hover': {
-            borderColor: '#00d9d960',
-            boxShadow: neonGlow('#00d9d9', 3),
-            animation: 'accentPulse 2s ease-in-out infinite',
+          [HOVER]: {
+            '&:hover': {
+              borderColor: '#00d9d960',
+              boxShadow: neonGlow('#00d9d9', 3),
+              animation: 'accentPulse 2s ease-in-out infinite',
+            },
           },
         },
       },
@@ -118,14 +151,18 @@ const darkTheme = createTheme({
       styleOverrides: {
         contained: {
           transition: 'box-shadow 0.3s ease, transform 0.2s ease',
-          '&:hover': {
-            boxShadow: neonGlow('#00d9d9', 3),
+          [HOVER]: {
+            '&:hover': {
+              boxShadow: neonGlow('#00d9d9', 3),
+            },
           },
         },
         outlined: {
-          '&:hover': {
-            borderColor: '#ff6b00',
-            boxShadow: neonGlow('#ff6b00', 2),
+          [HOVER]: {
+            '&:hover': {
+              borderColor: '#ff6b00',
+              boxShadow: neonGlow('#ff6b00', 2),
+            },
           },
         },
       },
@@ -146,8 +183,10 @@ const darkTheme = createTheme({
       styleOverrides: {
         root: {
           transition: 'box-shadow 0.3s ease',
-          '&:hover': {
-            boxShadow: neonGlow('#ff6b00', 2),
+          [HOVER]: {
+            '&:hover': {
+              boxShadow: neonGlow('#ff6b00', 2),
+            },
           },
         },
       },
@@ -165,6 +204,7 @@ const lightTheme = createTheme({
       main: '#dc004e',
     },
   },
+  components: sharedComponents,
 });
 
 export { darkTheme, lightTheme };

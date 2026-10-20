@@ -43,12 +43,12 @@ const GalleryList = () => {
   if (loading) return <Typography>Loading...</Typography>;
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h3" component="h1" gutterBottom>
+    <Container maxWidth="lg" sx={{ py: { xs: 2.5, sm: 4 } }}>
+      <Typography variant="h3" component="h1" gutterBottom sx={{ fontSize: { xs: '2rem', sm: '3rem' } }}>
         Photo Galleries
       </Typography>
 
-      <Grid container spacing={3} sx={{ mt: 2 }}>
+      <Grid container spacing={{ xs: 1.5, sm: 3 }} sx={{ mt: { xs: 1, sm: 2 } }}>
         {galleries.map(gallery => (
           <Grid size={getCardGridSize(settings.gallery_card_aspect_ratio)} key={gallery.id}>
             <GalleryCard gallery={gallery} />

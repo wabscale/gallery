@@ -3,17 +3,17 @@ import { useParams } from 'react-router';
 import {
   Container, Typography, Paper, Grid, TextField, FormControlLabel,
   Switch, Button, Box, Alert, FormControl, InputLabel, Slider, Divider,
-  Select, MenuItem, IconButton, Chip, Tooltip, Table, TableBody, Snackbar,
-  TableCell, TableContainer, TableHead, TableRow, TablePagination,
+  Select, MenuItem, IconButton, Chip, Tooltip, Snackbar,
   Dialog, DialogTitle, DialogContent, DialogActions, LinearProgress
 } from '@mui/material';
 import {
-  Delete, DeleteForever, Visibility, VisibilityOff, PhotoCamera, Download, Refresh, Settings, ContentCopy,
+  Delete, DeleteForever, Visibility, VisibilityOff, PhotoCamera, Refresh, Settings, ContentCopy,
   Add, Close
 } from '@mui/icons-material';
 import { galleriesAPI, imagesAPI } from '../../services/api';
 import ImageUploader from './ImageUploader';
 import ImageModal from '../gallery/ImageModal';
+import AccessLogs from './AccessLogs';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
 const DebouncedTextField = memo(({ value: externalValue, onChange, ...props }) => {
@@ -1376,157 +1376,6 @@ const ImageCard = ({
         {image.original_filename}
       </Typography>
     </Box>
-  );
-};
-
-const AccessLogs = ({ galleryId }) => {
-  const [logs, setLogs] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
-  const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
-  const isMobile = useIsMobile();
-
-  const loadLogs = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await galleriesAPI.getAccessLogs(galleryId, page + 1, rowsPerPage);
-      setLogs(response.data.logs);
-      setTotal(response.data.total);
-    } catch {
-      setLogs([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [galleryId, page, rowsPerPage]);
-
-  useEffect(() => {
-    loadLogs();
-  }, [loadLogs]);
-
-  const formatDate = (iso) => new Date(iso).toLocaleString();
-
-  const formatAction = (action) => {
-    switch (action) {
-      case 'access': return 'Accessed Gallery';
-      case 'view_image': return 'Viewed Image';
-      case 'download_gallery': return 'Downloaded Gallery';
-      default: return action;
-    }
-  };
-
-  const exportCsv = async () => {
-    let allLogs = [];
-    let currentPage = 1;
-    let hasMore = true;
-    while (hasMore) {
-      const response = await galleriesAPI.getAccessLogs(galleryId, currentPage, 200);
-      allLogs = allLogs.concat(response.data.logs);
-      hasMore = allLogs.length < response.data.total;
-      currentPage++;
-    }
-    const header = 'Email,Action,Image,IP Address,Date';
-    const rows = allLogs.map(log =>
-      [
-        `"${log.email}"`,
-        `"${formatAction(log.action)}"`,
-        `"${log.image_filename || ''}"`,
-        `"${log.ip_address || ''}"`,
-        `"${log.created_at}"`
-      ].join(',')
-    );
-    const csv = [header, ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `access-logs-${galleryId}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const uniqueEmails = new Set(logs.map(l => l.email)).size;
-
-  return (
-    <>
-      <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
-        <Box>
-          <Typography variant="subtitle1" fontWeight="bold">
-            Visitor Access Logs
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {total} events from {uniqueEmails} visitor{uniqueEmails !== 1 ? 's' : ''}
-          </Typography>
-        </Box>
-        <Box display="flex" gap={1}>
-          <Button size="small" startIcon={<Download />} onClick={exportCsv} disabled={total === 0}>
-            CSV
-          </Button>
-          <Button size="small" variant="outlined" onClick={() => setOpen(true)} disabled={total === 0}>
-            View
-          </Button>
-        </Box>
-      </Paper>
-
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="md" fullWidth fullScreen={isMobile}>
-        <DialogTitle>
-          <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-            <Typography variant="h6">Visitor Access Logs</Typography>
-            <Button size="small" startIcon={<Download />} onClick={exportCsv}>
-              Export CSV
-            </Button>
-          </Box>
-        </DialogTitle>
-        <DialogContent dividers>
-          {loading && logs.length === 0 ? (
-            <Typography color="text.secondary">Loading...</Typography>
-          ) : (
-            <>
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Email</TableCell>
-                      <TableCell>Action</TableCell>
-                      <TableCell>Image</TableCell>
-                      <TableCell>IP</TableCell>
-                      <TableCell>Date</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {logs.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell sx={{ whiteSpace: 'nowrap' }}>{log.email}</TableCell>
-                        <TableCell>{formatAction(log.action)}</TableCell>
-                        <TableCell>{log.image_filename || '-'}</TableCell>
-                        <TableCell>{log.ip_address || '-'}</TableCell>
-                        <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(log.created_at)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-              <TablePagination
-                component="div"
-                count={total}
-                page={page}
-                onPageChange={(_, newPage) => setPage(newPage)}
-                rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={(e) => {
-                  setRowsPerPage(parseInt(e.target.value, 10));
-                  setPage(0);
-                }}
-                rowsPerPageOptions={[10, 25, 50]}
-              />
-            </>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-    </>
   );
 };
 

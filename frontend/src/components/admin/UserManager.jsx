@@ -1,16 +1,69 @@
 import { useState, useEffect } from 'react';
 import {
-  Container, Typography, Box, Button, Paper, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, IconButton, Dialog, DialogTitle,
+  Container, Typography, Box, Button, IconButton, Dialog, DialogTitle, Tooltip,
   DialogContent, DialogActions, TextField, Switch, FormControlLabel, Alert, Chip
 } from '@mui/material';
-import { Edit, Delete, Add } from '@mui/icons-material';
+import { EditOutlined, DeleteOutline, PersonAdd } from '@mui/icons-material';
 import { adminAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
+import {
+  ListShell, ListHeader, HeaderCell, ListRow, Cell, SkeletonRows, InitialsAvatar, StatusDot, PageHeader
+} from './common/DataList';
+import { formatRelative, formatDate } from './common/format';
+
+const USER_TEMPLATE = {
+  xs: '40px minmax(0, 1fr) auto',
+  md: '40px minmax(0, 1.2fr) minmax(0, 1.6fr) 110px 130px 96px',
+};
+
+const UserRow = ({ user, isSelf, onEdit, onDelete }) => (
+  <ListRow template={USER_TEMPLATE} dimmed={!user.is_active}>
+    <InitialsAvatar name={user.username} />
+    <Cell>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+        <Typography variant="subtitle2" fontWeight={600} noWrap>{user.username}</Typography>
+        {isSelf && <Chip label="You" size="small" color="primary" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />}
+      </Box>
+      {/* On phones email and status fold under the name */}
+      <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+        <Typography variant="body2" color="text.secondary" noWrap>{user.email}</Typography>
+        <Box sx={{ mt: 0.5 }}><StatusDot active={user.is_active} label={user.is_active ? 'Active' : 'Inactive'} /></Box>
+      </Box>
+    </Cell>
+    <Cell hideBelow="md">
+      <Typography variant="body2" color="text.secondary" noWrap>{user.email}</Typography>
+    </Cell>
+    <Cell hideBelow="md">
+      <StatusDot active={user.is_active} label={user.is_active ? 'Active' : 'Inactive'} />
+    </Cell>
+    <Cell hideBelow="md">
+      <Tooltip title={formatDate(user.created_at)} placement="top-start">
+        <Typography variant="body2" color="text.secondary" component="span">{formatRelative(user.created_at)}</Typography>
+      </Tooltip>
+    </Cell>
+    <Cell align="right" sx={{ whiteSpace: 'nowrap' }}>
+      <Tooltip title="Edit">
+        <IconButton size="small" onClick={() => onEdit(user)}><EditOutlined fontSize="small" /></IconButton>
+      </Tooltip>
+      {!isSelf && (
+        <Tooltip title="Delete">
+          <IconButton
+            size="small"
+            onClick={() => onDelete(user)}
+            sx={{ '@media (hover: hover)': { '&:hover': { color: 'error.main' } } }}
+          >
+            <DeleteOutline fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
+    </Cell>
+  </ListRow>
+);
 
 const UserManager = () => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState({ username: '', email: '', password: '', is_active: true });
@@ -24,6 +77,7 @@ const UserManager = () => {
   const loadUsers = async () => {
     const response = await adminAPI.listUsers();
     setUsers(response.data);
+    setLoading(false);
   };
 
   const openCreateDialog = () => {
@@ -73,60 +127,39 @@ const UserManager = () => {
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Users</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={openCreateDialog}>
-          Add User
-        </Button>
-      </Box>
+    <Container maxWidth="lg" sx={{ py: { xs: 2.5, sm: 4 } }}>
+      <PageHeader
+        title="Users"
+        subtitle={loading ? ' ' : `${users.length} ${users.length === 1 ? 'account' : 'accounts'} \u00b7 ${users.filter((u) => u.is_active).length} active`}
+        action={
+          <Button variant="contained" startIcon={<PersonAdd />} onClick={openCreateDialog} sx={{ flexShrink: 0 }}>
+            Add User
+          </Button>
+        }
+      />
 
       {error && !dialogOpen && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Username</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Created</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {users.map((u) => (
-              <TableRow key={u.id}>
-                <TableCell>
-                  {u.username}
-                  {u.id === currentUser?.id && (
-                    <Chip label="you" size="small" sx={{ ml: 1 }} />
-                  )}
-                </TableCell>
-                <TableCell>{u.email}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={u.is_active ? 'Active' : 'Inactive'}
-                    color={u.is_active ? 'success' : 'default'}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>{new Date(u.created_at).toLocaleDateString()}</TableCell>
-                <TableCell align="right">
-                  <IconButton size="small" onClick={() => openEditDialog(u)}>
-                    <Edit />
-                  </IconButton>
-                  {u.id !== currentUser?.id && (
-                    <IconButton size="small" color="error" onClick={() => setDeleteConfirm(u)}>
-                      <Delete />
-                    </IconButton>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <ListShell>
+        <ListHeader template={USER_TEMPLATE.md}>
+          <span />
+          <HeaderCell>User</HeaderCell>
+          <HeaderCell>Email</HeaderCell>
+          <HeaderCell>Status</HeaderCell>
+          <HeaderCell>Joined</HeaderCell>
+          <HeaderCell align="right">Actions</HeaderCell>
+        </ListHeader>
+        {loading && <SkeletonRows count={3} />}
+        {users.map((u) => (
+          <UserRow
+            key={u.id}
+            user={u}
+            isSelf={u.id === currentUser?.id}
+            onEdit={openEditDialog}
+            onDelete={setDeleteConfirm}
+          />
+        ))}
+      </ListShell>
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editingUser ? 'Edit User' : 'Create User'}</DialogTitle>
